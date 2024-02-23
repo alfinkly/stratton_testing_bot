@@ -5,6 +5,7 @@ import callback_router
 import routers
 from config import TOKEN
 
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 dp.include_routers(routers.router, callback_router.router)
@@ -20,7 +21,8 @@ async def start_bot():
     # Запускаем бота и пропускаем все накопленные входящие
     # Да, этот метод можно вызвать даже если у вас поллинг
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, on_startup=)
+
 
 
 if __name__ == "__main__":

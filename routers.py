@@ -13,10 +13,17 @@ cursor = con.cursor()
 
 @router.message(Command("start"))
 async def start(message: Message):
-    cursor.execute(f"INSERT INTO users_data (user_id) VALUES ({message.from_user.id});")
-    con.commit()
+    try:
+        cursor.execute(f"SELECT user_id FROM users_data WHERE user_id = {message.from_user.id}")
+        row = cursor.fetchall()
+        if row == []:
+            print("User not on base!")
+            cursor.execute(f"INSERT INTO users_data (user_id) VALUES ({message.from_user.id});")
+            con.commit()
+    except Exception:
+        print("sql eror")
     await message.answer(
-        f"Приветствую @{message.from_user.username}, Я бот Staratton.kz",
+        f"Приветствую @{message.from_user.username}, Я бот Stratton.kz",
         reply_markup=keyboards.main_actions()
     )
 

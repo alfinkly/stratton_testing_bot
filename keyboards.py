@@ -27,7 +27,6 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
     caldr = calendar.monthcalendar(year, month)
 
     today = datetime.datetime.now()
-    print(caldr)
     texts = [month - 1, f"{months[month]} {year}", month + 1]
 
     if today.month > texts[0] and today.year > year:
@@ -69,10 +68,42 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
     )
     cursor.execute(f"SELECT date FROM users_data WHERE user_id = {message.from_user.id}")
     row = cursor.fetchall()
-    datetime_object = datetime.datetime.strptime(row[0][0], '%Y-%m-%d %H:%M:%S')
-    callback_router.galochka_date_db(return_keyboard=kb, db_day=datetime_object.day, db_month=datetime_object.month,
-                                     db_year=datetime_object.year)
+    print(row)
+    if row != [] and row[0][0] != None:
+        datetime_object = datetime.datetime.strptime(row[0][0], '%Y-%m-%d %H:%M:%S')
+        kb = callback_router.galochka_date_db(return_keyboard=kb, db_day=datetime_object.day, db_month=datetime_object.month,
+                                              db_year=datetime_object.year)
     return kb
+
+
+# def get_times(message) -> InlineKeyboardMarkup:
+#     from aiogram.types import InlineKeyboardButton
+#     import callback_router  # Подключите ваш модуль callback_router
+#
+#     times = []
+#     for hour in range(10, 20):
+#         for minute in [0, 3]:
+#             if hour == 19 and minute == 3:
+#                 break
+#             times.append(InlineKeyboardButton(text=f"{hour}:{minute}0",
+#                                                    callback_data=callback_router.TimeCallbackFactory(
+#                                                        action="times",
+#                                                        hour=hour,
+#                                                        minute=minute).pack()))
+#     true_times = []
+#     for i in range(len(times)//3+1):
+#         true_times.append([])
+#         for j in range(3):
+#             if len(times) != 0:
+#                 true_times[i].append(times[0])
+#                 times.pop(0)
+#
+#     return_keyboard = InlineKeyboardMarkup(inline_keyboard=true_times)
+#     cursor.execute(f"SELECT time FROM users_data WHERE user_id = {message.from_user.id}")
+#     row = cursor.fetchall()
+#     datetime_object = datetime.datetime.strptime(row[0][0], '%H:%M')
+#     return_keyboard = callback_router.galochka_time_db(return_keyboard=return_keyboard, time=row[0][0])
+#     return return_keyboard
 
 
 def get_times() -> InlineKeyboardMarkup:
@@ -82,9 +113,9 @@ def get_times() -> InlineKeyboardMarkup:
     import callback_router  # Подключите ваш модуль callback_router
 
     times = []
-    for hour in range(10, 20):
-        for minute in [0, 3]:
-            if hour == 19 and minute == 3:
+    for hour in range(20, 22):
+        for minute in [0, 1, 2, 3, 4, 5]:
+            if hour == 22 and minute == 3:
                 break
             times.append(InlineKeyboardButton(text=f"{hour}:{minute}0",
                                                    callback_data=callback_router.TimeCallbackFactory(
