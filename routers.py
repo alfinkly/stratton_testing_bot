@@ -1,3 +1,5 @@
+import sqlite3
+
 from aiogram import Router, F, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardRemove
@@ -5,11 +7,14 @@ from config import TOKEN
 import keyboards
 
 router = Router()
-
+con = sqlite3.connect("database.db")
+cursor = con.cursor()
 
 
 @router.message(Command("start"))
 async def start(message: Message):
+    cursor.execute(f"INSERT INTO users_data (user_id) VALUES ({message.from_user.id});")
+    con.commit()
     await message.answer(
         f"Приветствую @{message.from_user.username}, Я бот Staratton.kz",
         reply_markup=keyboards.main_actions()
@@ -36,7 +41,7 @@ async def info(message: Message):
 async def info(message: Message):
     await message.answer(
         f"Укажите удобную для вас дату:",
-        reply_markup=keyboards.get_calendar(2024, 2)
+        reply_markup=keyboards.get_calendar(2024, 2, message)
     )
 
 
