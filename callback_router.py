@@ -3,7 +3,7 @@ import datetime
 
 import aiogram
 import pytz
-from aiogram import Router, F, types
+from aiogram import Router, F, types, Dispatcher
 from aiogram.enums import ContentType
 from aiogram.filters.callback_data import CallbackData
 
@@ -94,7 +94,6 @@ async def month(callback: types.CallbackQuery, callback_data: DateCallbackFactor
 
 @router.callback_query(TimeCallbackFactory.filter(F.action == "times"))
 async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactory):
-    print("Тут я работаю")
     return_keyboard = keyboards.get_times(callback)
     for row in range(len(callback.message.reply_markup.inline_keyboard)):
         for data in range(len(callback.message.reply_markup.inline_keyboard[row])):
@@ -110,7 +109,6 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                 con.commit()
                 cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {callback.from_user.id}")
                 row_db = cursor.fetchall()
-                print(row_db)
                 if row_db != [] and row_db[0][0] is not None and row_db[0][1] is not None:
                     date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1] +
                                                          ":00", '%Y-%m-%d %H:%M:%S')
@@ -125,20 +123,20 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                     scheduler.shutdown()
                 except:
                     print("schedulers shutdown error")
-                    scheduler.add_job(schedule_start_from_db, trigger='date', run_date=date_to,
-                                      kwargs={"callback": callback, "date": date_to})
-                    scheduler.add_job(schedule_not_end_but_end_from_db, trigger='date',
-                                      run_date=str(date_to + config.exam_times["send_notification"]),
-                                      kwargs={"callback": callback})
-                    scheduler.add_job(schedule_end_from_db, trigger='date', run_date=str(date_to +
-                                                                                         config.exam_times["duration"]),
-                                      kwargs={"callback": callback})
-                    correct_time = f"{callback_data.hour}:{callback_data.minute}0"
-                    # correct_time = f"20:24"
-                    user_config = (correct_time, callback.from_user.id)
-                    cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
-                    con.commit()
-                    scheduler.start()
+                scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
+                                  kwargs={"callback": callback})
+                scheduler.add_job(send_testing_message, trigger='date',
+                                  run_date=str(date_to + config.exam_times["send_notification"]),
+                                  kwargs={"callback": callback})
+                scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
+                                                                                     config.exam_times["duration"]),
+                                  kwargs={"callback": callback})
+                correct_time = f"{callback_data.hour}:{callback_data.minute}0"
+                # correct_time = f"20:24"
+                user_config = (correct_time, callback.from_user.id)
+                cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
+                con.commit()
+                scheduler.start()
 
                 return_keyboard.inline_keyboard[row][data].text = "✅"
     try:
@@ -151,26 +149,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
     await callback.answer()
     await callback.message.answer(text=f"Ваше тестирование запланировано на: {row_db[0][0].split(' ')[0]}"
                                        f" {row_db[0][1]}. В указанное время я отправлю вам задание. На его выполнение "
-                                       f"у вас будет 4 часа. Результаты тестирования можно отправить в виде "
+                                       f"у вас будет 4 часа. Результаты тестирования нужно отправить в виде "
                                        f"видео до 30 секунд",
                                   reply_markup=keyboards.main_actions(remove_exam=
                                                                       routers.exist_datetime(callback.from_user.id)))
-
-
-@router.callback_query(IsCompleteCallbackFactory.filter(F.action == "isComplete"))
-async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactory):
-    if callback_data.from_who == 0:
-        if callback_data.is_complete == 0:
-            await callback.message.edit_text(text=f"Тестирование продолжается")
-        elif callback_data.is_complete == 1:
-            await callback.message.edit_text(text=f"Вы досрочно закончили тестирование")
-            await send_testing_message(callback, go_to=3)
-        await callback.send_copy(config.checker_id, reply_keyboard=keyboards.keyboard_is_exam_complete(from_who=1))
-        await callback.(config.checker_id, reply_keyboard=keyboards.keyboard_is_exam_complete(from_who=1))
-    elif callback_data.from_who == 1:
-        if callback_data.is_complete == 0:
-            await callback.message.edit_text(text=f"Тестирование продолжается")
-        elif callback_data.is_complete == 1:
-            await callback.message.edit_text(text=f"Вы досрочно закончили тестирование")
-            await send_testing_message(callback, go_to=3)
-    await callback.answer()

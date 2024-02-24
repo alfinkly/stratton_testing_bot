@@ -18,3 +18,4 @@ class IsCompleteCallbackFactory(CallbackData, prefix='isc'):
     action: str
     is_complete: int  # 1 - yes; 0 - no
     from_who: int  # 1 - checker; 0 - tester
+    sender: int = None

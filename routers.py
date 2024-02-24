@@ -47,7 +47,7 @@ async def info(message: Message):
     )
 
 
-@router.message(F.text == "Записаться на тест")
+@router.message(F.text == "Записаться на тестирование")
 async def info(message: Message):
     await message.answer(
         f"Укажите удобную для вас дату:",
@@ -81,6 +81,7 @@ async def start(message: Message):
         if config.DEV_MODE:
             cursor.execute(f"DELETE FROM users_data")
             con.commit()
+            print("remaked!")
     except Exception:
         print("sql eror")
     await message.answer(text="АНИГИЛЯЦИЯ УСПЕШНА",
@@ -100,8 +101,9 @@ async def video(message: Message):
     if message.video.duration > 30:
         await message.reply("Извините, видео должно быть не более 30 секунд.")
 
-    if date_to < now < date_to + datetime.timedelta(minutes=3):
-        await message.answer("Закончить досрочно?", reply_markup=keyboards.keyboard_is_exam_complete())
+    if date_to < now < date_to + datetime.timedelta(minutes=10) or config.DEV_MODE:
+        await message.answer("Закончить тестирование?",
+                             reply_markup=keyboards.keyboard_is_exam_complete(from_who=0, sender=message.from_user.id))
         #
     else:
         await message.answer("Вы отправили видео не в срок!")

@@ -20,7 +20,7 @@ cursor = con.cursor()
 def main_actions(remove_exam=False) -> ReplyKeyboardMarkup:
     keyboard = [
         [KeyboardButton(text="Подробная информация"), KeyboardButton(text="Контакты")],
-        [KeyboardButton(text="Записаться на тест")]
+        [KeyboardButton(text="Записаться на тестирование")]
     ]
     if remove_exam:
         keyboard[1].append(KeyboardButton(text="Отменить тестирование"))
@@ -39,7 +39,7 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
     today = datetime.datetime.now()
     texts = [month - 1, f"{months[month]} {year}", month + 1]
 
-    if today.month > texts[0] and today.year > year:
+    if today.month > texts[0] and today.year > year and today.hour != 23:
         texts[0] = "❌"
     calendar_buttons = []
     for row in range(len(caldr)):
@@ -90,10 +90,8 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
 def get_times(callback) -> InlineKeyboardMarkup:
     times = []
     start_time = 0
-    print("Я работаю?")
     cursor.execute(f"SELECT date FROM users_data WHERE user_id={callback.from_user.id}")
     select = cursor.fetchall()[0][0]
-    print("selectel - ", select)
     db_day = datetime.datetime.strptime(select, '%Y-%m-%d %H:%M:%S')
     today = datetime.datetime.today()
     if today.year == db_day.year and today.month == db_day.month and today.day == db_day.day:
@@ -116,16 +114,20 @@ def get_times(callback) -> InlineKeyboardMarkup:
     return return_keyboard
 
 
-def keyboard_is_exam_complete(from_who) -> InlineKeyboardMarkup:
+def keyboard_is_exam_complete(from_who, sender) -> InlineKeyboardMarkup:
+    match from_who:
+        case 0:
+            texts = ["Да", "Нет"]
+        case 1:
+            texts = ["Принять тест", "Отклонить тест"]
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Да", callback_data=IsCompleteCallbackFactory(action="isComplete",
-                                                                                 is_complete=1,
-                                                                                 from_who=from_who).pack()),
-         InlineKeyboardButton(text="Нет", callback_data=IsCompleteCallbackFactory(action="isComplete",
-                                                                                  is_complete=0,
-                                                                                 from_who=from_who).pack())]
+        [InlineKeyboardButton(text=texts[0], callback_data=IsCompleteCallbackFactory(action="isComplete",
+                                                                                     is_complete=1,
+                                                                                     from_who=from_who,
+                                                                                     sender=sender).pack()),
+         InlineKeyboardButton(text=texts[1], callback_data=IsCompleteCallbackFactory(action="isComplete",
+                                                                                     is_complete=0,
+                                                                                     from_who=from_who,
+                                                                                     sender=sender).pack())]
     ])
     return keyboard
-
-
-

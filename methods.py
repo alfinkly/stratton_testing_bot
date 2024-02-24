@@ -9,7 +9,6 @@ cursor = con.cursor()
 
 
 def galochka_date_change(callback, callback_data, return_keyboard):
-    print("galochka_date_change")
     return_keyboard = return_keyboard
     caldr = calendar.monthcalendar(callback_data.year, callback_data.month)
     for row in range(len(callback.message.reply_markup.inline_keyboard)):
@@ -28,7 +27,6 @@ def galochka_date_change(callback, callback_data, return_keyboard):
 
 
 def galochka_date_db(return_keyboard, db_day, db_month, db_year):
-    print("galochka_date_db")
     return_keyboard = return_keyboard
     # caldr = calendar.monthcalendar(db_year, db_month)
     for row in range(len(return_keyboard.inline_keyboard)):
@@ -41,7 +39,6 @@ def galochka_date_db(return_keyboard, db_day, db_month, db_year):
 
 
 def galochka_time_change(callback, callback_data, return_keyboard, time):
-    print("galochka_time_change")
     for row in range(len(callback.message.reply_markup.inline_keyboard)):
         for data in range(len(callback.message.reply_markup.inline_keyboard[row])):
             if callback.message.reply_markup.inline_keyboard[row][data].text == "✅":
@@ -62,7 +59,6 @@ def galochka_time_change(callback, callback_data, return_keyboard, time):
 
 
 def galochka_time_db(return_keyboard, callback):
-    print("galochka_time_db")
     cursor.execute(f"SELECT time FROM users_data WHERE user_id={callback.from_user.id}")
     db_row = cursor.fetchall()
     if db_row[0][0] is not None:
@@ -91,25 +87,30 @@ def galochka_time_db(return_keyboard, callback):
 def exist_datetime(user_id) -> bool:
     cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {user_id}")
     row = cursor.fetchall()
-    print(row)
-    if row[0][0] is not None and row[0][1] is not None:
-        print("exist_datetime - True")
-        return True
-    print("exist_datetime - False")
+    try:
+        if row[0][0] is not None and row[0][1] is not None:
+            print("exist datetime on db - True")
+            return True
+    except Exception:
+        print()
+    print("exist datetime on db- False")
     return False
 
 
-async def send_testing_message(callback: CallbackQuery, go_to: int):
+async def send_testing_message(callback: CallbackQuery, go_to=False):
     cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {callback.from_user.id}")
-    if go_to is not None:
-        status = cursor.fetchall()[0][0]
+    if go_to:
+        status = 3
+        cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (4, callback.from_user.id))
+        con.commit()
+        return
     else:
-        status = go_to
+        status = cursor.fetchall()[0][0]
 
     next_status = 1
     match status:
         case 1:
-            await callback.message.answer(text="Ваше тестирование началось")
+            await callback.message.answer(text="Ваше тестирование началось. Задание: {Задание}")  # todo заменить
             next_status = 2
         case 2:
             await callback.message.answer(
