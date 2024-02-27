@@ -27,6 +27,8 @@ test_status = 1
 @router.callback_query(DateCallbackFactory.filter(F.action == "set_date"))
 async def send_random_value(callback: types.CallbackQuery, callback_data: DateCallbackFactory):
     return_keyboard = callback.message.reply_markup
+    cursor.execute(f"UPDATE users_data set test_status=NULL where user_id={callback.from_user.id}")
+    con.commit()
     # caldr = calendar.monthcalendar(callback_data.year, callback_data.month)
     # for row in range(len(callback.message.reply_markup.inline_keyboard)):
     #     for data in range(len(callback.message.reply_markup.inline_keyboard[row])):
@@ -44,11 +46,11 @@ async def send_random_value(callback: types.CallbackQuery, callback_data: DateCa
                                            return_keyboard=return_keyboard)
     try:
         await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-        await callback.message.edit_text(text=f"Вы выбрали дату: {callback_data.year}-{callback_data.month}"
-                                              f"-{callback_data.day}")
+        await callback.message.edit_text(text=f"Дата выполнения задания: {callback_data.day}.{callback_data.month}"
+                                              f".{callback_data.year}")
     except Exception:
-        print("Keyboard not modified")
-    await callback.message.answer(f"Выберите удобное время", reply_markup=keyboards.get_times(callback))
+        print("Клавиатура не изменена")
+    await callback.message.answer(f"Выберите удобное время  🕗", reply_markup=keyboards.get_times(callback))
     await callback.answer()
 
 
@@ -95,6 +97,11 @@ async def month(callback: types.CallbackQuery, callback_data: DateCallbackFactor
 @router.callback_query(TimeCallbackFactory.filter(F.action == "times"))
 async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactory):
     return_keyboard = keyboards.get_times(callback)
+    correct_time = f"{callback_data.hour}:{callback_data.minute}0"
+    # correct_time = f"20:24"
+    user_config = (correct_time, callback.from_user.id)
+    cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
+    con.commit()
     for row in range(len(callback.message.reply_markup.inline_keyboard)):
         for data in range(len(callback.message.reply_markup.inline_keyboard[row])):
             # if callback.message.reply_markup.inline_keyboard[row][data].text == "✅":
@@ -116,10 +123,17 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                     print("No datetime in database")
                     return callback.message.answer(text="Произошла ошибка")
                 if config.DEV_MODE:
-                    date_to = datetime.datetime.now() + datetime.timedelta(seconds=3)
+                    date_now = datetime.datetime.now()
+                    date_to = datetime.datetime(year=date_now.year, month=date_now.month, day=date_now.day,
+                                                hour=date_now.hour, minute=date_now.minute)
+                    date_to += datetime.timedelta(seconds=30)
+                    cursor.execute(f"update users_data set date=?, time=?, test_status=1"
+                                   f" where user_id={callback.from_user.id}", (date_to, f"{date_to.hour}:{date_to.minute}"))
+                    con.commit()
+
                 scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
                 try:
-                    scheduler.remove_all_jobs()
+                    scheduler.remove_all_jobs() 
                     scheduler.shutdown()
                 except:
                     print("schedulers shutdown error")
@@ -131,11 +145,6 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                 scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
                                                                                      config.exam_times["duration"]),
                                   kwargs={"callback": callback})
-                correct_time = f"{callback_data.hour}:{callback_data.minute}0"
-                # correct_time = f"20:24"
-                user_config = (correct_time, callback.from_user.id)
-                cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
-                con.commit()
                 scheduler.start()
 
                 return_keyboard.inline_keyboard[row][data].text = "✅"
@@ -147,9 +156,14 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
     cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {callback.from_user.id}")
     row_db = cursor.fetchall()
     await callback.answer()
-    await callback.message.answer(text=f"Ваше тестирование запланировано на: {row_db[0][0].split(' ')[0]}"
-                                       f" {row_db[0][1]}. В указанное время я отправлю вам задание. На его выполнение "
-                                       f"у вас будет 4 часа. Результаты тестирования нужно отправить в виде "
-                                       f"видео до 30 секунд",
+    dates = row_db[0][0].split(' ')[0].split('-')
+    date = f"{dates[2]}.{dates[1]}.{dates[0]}"
+    await callback.message.answer(text="Ура! Вы назначили себе задание! 🙂" 
+                                       "\n" 
+                                       f"\nДата: {date}" 
+                                       f"\nВремя: {row_db[0][1]}" 
+                                       "\nВремя на выполнение: 4 часа" 
+                                       "\n" 
+                                       "\nТеперь ожидайте задание 🙂",
                                   reply_markup=keyboards.main_actions(remove_exam=
                                                                       routers.exist_datetime(callback.from_user.id)))

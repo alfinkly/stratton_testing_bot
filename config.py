@@ -7,10 +7,10 @@ months = {1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрел�
 
 checker_id = 992654384
 
-exam_times = {"duration": datetime.timedelta(hours=4), "send_notification": datetime.timedelta(hours=3, minutes=50)}
+exam_times = {"duration": datetime.timedelta(minutes=10), "send_notification": datetime.timedelta(minutes=9)}
 
 DEV_MODE = True
 
 if DEV_MODE:
-    exam_times = {"duration": datetime.timedelta(minutes=1), "send_notification": datetime.timedelta(seconds=15)}
+    exam_times = {"duration": datetime.timedelta(minutes=1), "send_notification": datetime.timedelta(seconds=3)}
     checker_id = 992654384

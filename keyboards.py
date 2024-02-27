@@ -117,15 +117,15 @@ def get_times(callback) -> InlineKeyboardMarkup:
 def keyboard_is_exam_complete(from_who, sender) -> InlineKeyboardMarkup:
     match from_who:
         case 0:
-            texts = ["Да", "Нет"]
+            texts = ["Отправить тестирование", "Не отправлять"]
         case 1:
-            texts = ["Принять тест", "Отклонить тест"]
+            texts = ["Принять тестирование", "Отклонить тестирование"]
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=texts[0], callback_data=IsCompleteCallbackFactory(action="isComplete",
                                                                                      is_complete=1,
                                                                                      from_who=from_who,
-                                                                                     sender=sender).pack()),
-         InlineKeyboardButton(text=texts[1], callback_data=IsCompleteCallbackFactory(action="isComplete",
+                                                                                     sender=sender).pack())],
+        [InlineKeyboardButton(text=texts[1], callback_data=IsCompleteCallbackFactory(action="isComplete",
                                                                                      is_complete=0,
                                                                                      from_who=from_who,
                                                                                      sender=sender).pack())]

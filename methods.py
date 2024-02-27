@@ -2,6 +2,7 @@ import calendar
 import datetime
 import sqlite3
 
+from aiogram import types
 from aiogram.types import CallbackQuery
 
 con = sqlite3.connect("database.db")
@@ -49,7 +50,7 @@ def galochka_time_change(callback, callback_data, return_keyboard, time):
             if callback.message.reply_markup.inline_keyboard[row][data].text == time:
                 # if callback.message.reply_markup.inline_keyboard[row][data].text ==\
                 #     f"{callback_data.hour}:{callback_data.minute}0":
-                print("Edited", callback.message.reply_markup.inline_keyboard[row][data].text, callback_data.hour,
+                print("Время изменено на", callback.message.reply_markup.inline_keyboard[row][data].text, callback_data.hour,
                       callback_data.minute)
                 user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
                 cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
@@ -99,8 +100,8 @@ def exist_datetime(user_id) -> bool:
 
 async def send_testing_message(callback: CallbackQuery, go_to=False):
     cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {callback.from_user.id}")
+    print("testsing message")
     if go_to:
-        status = 3
         cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (4, callback.from_user.id))
         con.commit()
         return

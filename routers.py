@@ -19,14 +19,16 @@ async def start(message: Message):
         cursor.execute(f"SELECT user_id FROM users_data WHERE user_id = {message.from_user.id}")
         row = cursor.fetchall()
         if row == []:
-            print("User not on base!")
+            print("Добавляю нового пользователя")
             cursor.execute(f"INSERT INTO users_data (user_id) VALUES ({message.from_user.id});")
             con.commit()
-            print("User @" + message.from_user.username + " with id-" + message.from_user.id + " added to base")
+            print("Пользователь @" + message.from_user.username + " с id-" + message.from_user.id + " добавлен")
     except Exception:
         print("sql eror")
     await message.answer(
-        f"Приветствую @{message.from_user.username}, Я бот Stratton.kz",
+        f"Приветствую @{message.from_user.username}🙂🤝🏼 "
+        f"\nЯ бот компании Stratton.kz"
+        f"\nПомогу тебе получить практическое задание 👇",
         reply_markup=keyboards.main_actions(remove_exam=exist_datetime(message.from_user.id))
     )
 
@@ -42,7 +44,8 @@ async def info(message: Message):
 @router.message(F.text == "Контакты")
 async def info(message: Message):
     await message.answer(
-        f"Для связи с нами пишите  @strattonautomation",
+        f"Для связи с нами пишите ✍️"
+        f"@strattonautomation",
         reply_markup=keyboards.main_actions(remove_exam=exist_datetime(message.from_user.id))
     )
 
@@ -50,7 +53,7 @@ async def info(message: Message):
 @router.message(F.text == "Записаться на тестирование")
 async def info(message: Message):
     await message.answer(
-        f"Укажите удобную для вас дату:",
+        f"Выберите удобную дату  📅",
         reply_markup=keyboards.get_calendar(2024, 2, message)
     )
 
@@ -66,7 +69,8 @@ async def info(message: Message):
 @router.message(F.text == "Отменить тестирование")
 async def remove_exam(message: Message):
     try:
-        cursor.execute(f"UPDATE users_data SET date=NULL, time=NULL WHERE user_id={message.from_user.id}")
+        cursor.execute(f"UPDATE users_data SET date=NULL, time=NULL, test_status=NULL "
+                       f"WHERE user_id={message.from_user.id}")
         con.commit()
         await message.answer(text="Ваше тестирование удалено",
                              reply_markup=keyboards.main_actions(remove_exam=exist_datetime(message.from_user.id)))
@@ -82,10 +86,10 @@ async def start(message: Message):
             cursor.execute(f"DELETE FROM users_data")
             con.commit()
             print("remaked!")
+            await message.answer(text="АНИГИЛЯЦИЯ УСПЕШНА",
+                                 reply_markup=keyboards.main_actions(remove_exam=exist_datetime(message.from_user.id)))
     except Exception:
         print("sql eror")
-    await message.answer(text="АНИГИЛЯЦИЯ УСПЕШНА",
-                         reply_markup=keyboards.main_actions(remove_exam=exist_datetime(message.from_user.id)))
 
 
 @router.message(F.video)
@@ -101,9 +105,7 @@ async def video(message: Message):
     if message.video.duration > 30:
         await message.reply("Извините, видео должно быть не более 30 секунд.")
 
-    if date_to < now < date_to + datetime.timedelta(minutes=10) or config.DEV_MODE:
-        await message.answer("Закончить тестирование?",
-                             reply_markup=keyboards.keyboard_is_exam_complete(from_who=0, sender=message.from_user.id))
-        #
+    if date_to < now < date_to + config.exam_times["duration"]:  # or config.DEV_MODE:
+        await message.send_copy(config.checker_id, reply_markup=keyboards.keyboard_is_exam_complete(from_who=0, sender=message.from_user.id))
     else:
         await message.answer("Вы отправили видео не в срок!")
