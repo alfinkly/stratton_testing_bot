@@ -5,7 +5,9 @@ import sqlite3
 from aiogram import types
 from aiogram.types import CallbackQuery
 
-con = sqlite3.connect("database.db")
+import keyboards
+
+con = sqlite3.connect("database.db", timeout=30)
 cursor = con.cursor()
 
 
@@ -50,7 +52,8 @@ def galochka_time_change(callback, callback_data, return_keyboard, time):
             if callback.message.reply_markup.inline_keyboard[row][data].text == time:
                 # if callback.message.reply_markup.inline_keyboard[row][data].text ==\
                 #     f"{callback_data.hour}:{callback_data.minute}0":
-                print("Время изменено на", callback.message.reply_markup.inline_keyboard[row][data].text, callback_data.hour,
+                print("Время изменено на", callback.message.reply_markup.inline_keyboard[row][data].text,
+                      callback_data.hour,
                       callback_data.minute)
                 user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
                 cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
@@ -98,28 +101,90 @@ def exist_datetime(user_id) -> bool:
     return False
 
 
-async def send_testing_message(callback: CallbackQuery, go_to=False):
-    cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {callback.from_user.id}")
-    print("testsing message")
-    if go_to:
-        cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (4, callback.from_user.id))
-        con.commit()
-        return
-    else:
-        status = cursor.fetchall()[0][0]
+async def send_testing_message(callback=None, message=None, go_to=False):
+    try:
+        if callback.from_user.id != None:
+            cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {callback.from_user.id}")
+            print("testsing message")
+            if go_to:
+                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (4, callback.from_user.id))
+                con.commit()
+                return
+            else:
+                status = cursor.fetchall()[0][0]
 
-    next_status = 1
-    match status:
-        case 1:
-            await callback.message.answer(text="Ваше тестирование началось. Задание: {Задание}")  # todo заменить
-            next_status = 2
-        case 2:
-            await callback.message.answer(
-                text="Ваше тестирование закончится через 10 минут, успейте отправить результаты"
-                     " в виде видео до 30 секунд ")
-            next_status = 3
-        case 3:
-            await callback.message.answer(text="Ваше тестирование окончено")
-            next_status = 4
-    cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (next_status, callback.from_user.id))
-    con.commit()
+            next_status = 1
+            match status:
+                case 1:
+                    await callback.message.answer(text="Ваше тестирование началось, успехов!\n\n"
+                                                       "Время на выполнение: 4 часа\n"
+                                                       "Задание будет на проверке когда вы отправите видео ✅\n\n"
+                                                       "Задание: {Задание}\n\n"
+                                                       "Результат выслать в формате:\n"
+                                                       "- видео работы кода до 30 секунд;\n"
+                                                       "- ссылка на запущенного бота.",
+                                                  reply_markup=keyboards.main_actions(message=callback, remove_sub=True))
+                    next_status = 2
+                case 2:
+                    await callback.message.answer(
+                        text="У Вас есть 10 минут, чтобы отправить результаты!")
+                    next_status = 3
+                case 3:
+                    await callback.message.answer(text="Ваше тестирование не выполнено"
+                                                       f"\nПо вопросам пересдачи пишите  ✍️"
+                                                       f"\n@strattonautomation")
+                    next_status = 4
+            if next_status != 1:
+                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (next_status, callback.from_user.id))
+                con.commit()
+    except Exception:
+        print("not callback")
+    try:
+        if message.from_user.id is not None:
+            cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {message.from_user.id}")
+            print("testsing message")
+            if go_to:
+                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (4, message.from_user.id))
+                con.commit()
+                return
+            else:
+                status = cursor.fetchall()[0][0]
+            next_status = 1
+            match status:
+                case 1:
+                    await message.answer(text="Ваше тестирование началось, успехов!\n\n"
+                                                       "Время на выполнение: 4 часа\n"
+                                                       "Задание будет на проверке когда вы отправите видео ✅\n\n"
+                                                       "Задание: {Задание}\n\n"
+                                                       "Результат выслать в формате:\n"
+                                                       "- видео работы кода до 30 секунд;\n"
+                                                       "- ссылка на запущенного бота.",
+                                                  reply_markup=keyboards.main_actions(message=message, remove_sub=True))
+                    next_status = 2
+                case 2:
+                    await message.answer(
+                        text="У Вас есть 10 минут, чтобы отправить результаты!")
+                    next_status = 3
+                case 3:
+                    await message.answer(text="Ваше тестирование не выполнено"
+                                                       f"\nПо вопросам пересдачи пишите  ✍️"
+                                                       f"\n@strattonautomation")
+                    next_status = 4
+            if next_status != 1:
+                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (next_status, message.from_user.id))
+                con.commit()
+    except Exception:
+        print("not message")
+
+
+def is_status_active(message, remove_none=False):
+    cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {message.from_user.id}")
+    row = cursor.fetchone()
+    print(row)
+    if remove_none:
+        if row[0] == 1:
+            return True
+    else:
+        if row[0] is None or row[0] == 1:
+            return True
+    return False

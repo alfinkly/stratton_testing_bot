@@ -1,10 +1,11 @@
 import sqlite3
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 import calendar
 import datetime
 import callback_router
 import config
+import methods
 import routers
 from config import months
 from typing import Optional
@@ -13,17 +14,22 @@ from aiogram.filters.callback_data import CallbackData
 from factories import *
 from methods import *
 
-con = sqlite3.connect("database.db")
+con = sqlite3.connect("database.db", timeout=30)
 cursor = con.cursor()
 
 
-def main_actions(remove_exam=False) -> ReplyKeyboardMarkup:
+def main_actions(message, add_remove_exam=False, remove_sub=False) -> ReplyKeyboardMarkup:
+    cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
+    status = cursor.fetchone()
     keyboard = [
-        [KeyboardButton(text="Подробная информация"), KeyboardButton(text="Контакты")],
+        [KeyboardButton(text="Главная"), KeyboardButton(text="Подробная информация"), KeyboardButton(text="Контакты")],
         [KeyboardButton(text="Записаться на тестирование")]
     ]
-    if remove_exam:
+    if add_remove_exam and methods.is_status_active(message):
         keyboard[1].append(KeyboardButton(text="Отменить тестирование"))
+    if remove_sub:
+        print("oneee")
+        keyboard[1].pop(0)
     if config.DEV_MODE:
         keyboard.append([KeyboardButton(text="/start"), KeyboardButton(text="/remake")])
     kb = ReplyKeyboardMarkup(
@@ -73,8 +79,7 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
                                                                                     day=1,
                                                                                     month=texts[
                                                                                         2]).pack())]
-                        ] +
-                        calendar_buttons
+                        ] + calendar_buttons
     )
     cursor.execute(f"SELECT date FROM users_data WHERE user_id = {message.from_user.id}")
     row = cursor.fetchall()
@@ -109,6 +114,7 @@ def get_times(callback) -> InlineKeyboardMarkup:
             if len(times) != 0:
                 true_times[i].append(times[0])
                 times.pop(0)
+    true_times += [[InlineKeyboardButton(text=f"Назад  ◀️", callback_data="back_to_date")]]
     return_keyboard = InlineKeyboardMarkup(inline_keyboard=true_times)
     galochka_time_db(return_keyboard, callback)
     return return_keyboard

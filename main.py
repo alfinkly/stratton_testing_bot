@@ -23,8 +23,8 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
         elif callback_data.is_complete == 1:
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
             await send_testing_message(callback, go_to=True)
-        await callback.message.send_copy(config.checker_id, reply_markup=keyboards.
-                                         keyboard_is_exam_complete(from_who=1, sender=callback.from_user.id))
+            await callback.message.send_copy(config.checker_id, reply_markup=keyboards.
+                                             keyboard_is_exam_complete(from_who=1, sender=callback.from_user.id))
     elif callback_data.from_who == 1:
         if callback_data.is_complete == 0:
             await callback.message.answer(text=f"Вы отклонили тестирование")
