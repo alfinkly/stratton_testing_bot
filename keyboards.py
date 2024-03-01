@@ -28,7 +28,6 @@ def main_actions(message, add_remove_exam=False, remove_sub=False) -> ReplyKeybo
     if add_remove_exam and methods.is_status_active(message):
         keyboard[1].append(KeyboardButton(text="Отменить тестирование"))
     if remove_sub:
-        print("oneee")
         keyboard[1].pop(0)
     if config.DEV_MODE:
         keyboard.append([KeyboardButton(text="/start"), KeyboardButton(text="/remake")])
@@ -54,7 +53,7 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
             date_num = caldr[row][column]
             if date_num == 0:
                 date_num = " "
-            elif date_num < today.day and month <= today.month:
+            elif date_num < today.day and month <= today.month and today.hour == 23:
                 date_num = "❌"
             if date_num == " " or date_num == "❌":
                 calendar_buttons[row].append(InlineKeyboardButton(text=str(date_num), callback_data="nothing"))
@@ -83,7 +82,6 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
     )
     cursor.execute(f"SELECT date FROM users_data WHERE user_id = {message.from_user.id}")
     row = cursor.fetchall()
-    print(row)
     if row != [] and row[0][0] is not None:
         datetime_object = datetime.datetime.strptime(row[0][0], '%Y-%m-%d %H:%M:%S')
         kb = galochka_date_db(return_keyboard=kb, db_day=datetime_object.day,

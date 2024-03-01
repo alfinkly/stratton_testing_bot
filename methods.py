@@ -1,5 +1,6 @@
 import calendar
 import datetime
+import logging
 import sqlite3
 
 from aiogram import types
@@ -93,11 +94,9 @@ def exist_datetime(user_id) -> bool:
     row = cursor.fetchall()
     try:
         if row[0][0] is not None and row[0][1] is not None:
-            print("exist datetime on db - True")
             return True
     except Exception:
-        print()
-    print("exist datetime on db- False")
+        logging.error("Нет даты и времени в базе данных")
     return False
 
 
@@ -138,7 +137,7 @@ async def send_testing_message(callback=None, message=None, go_to=False):
                 cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (next_status, callback.from_user.id))
                 con.commit()
     except Exception:
-        print("not callback")
+        logging.error("Переменная не callback")
     try:
         if message.from_user.id is not None:
             cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {message.from_user.id}")
@@ -174,13 +173,11 @@ async def send_testing_message(callback=None, message=None, go_to=False):
                 cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (next_status, message.from_user.id))
                 con.commit()
     except Exception:
-        print("not message")
-
+        logging.error("Переменная не message")
 
 def is_status_active(message, remove_none=False):
     cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {message.from_user.id}")
     row = cursor.fetchone()
-    print(row)
     if remove_none:
         if row[0] == 1:
             return True

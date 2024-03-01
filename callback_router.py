@@ -1,5 +1,7 @@
 import calendar
 import datetime
+import logging
+
 import aiogram
 import pytz
 from aiogram import Router, F, types, Dispatcher
@@ -54,7 +56,7 @@ async def month(callback: types.CallbackQuery, callback_data: DateCallbackFactor
                                                                                      month=callback_data.month,
                                                                                      message=callback))
     except Exception:
-        print("erorr")
+        logging.error("Month select error")
     await callback.answer()
 
 

@@ -1,4 +1,5 @@
 import datetime
+import logging
 import sqlite3
 
 from aiogram import Router, F
@@ -17,16 +18,15 @@ cursor = con.cursor()
 
 @router.message(Command("start"))
 async def start(message: Message):
-    try:
-        cursor.execute(f"SELECT user_id FROM users_data WHERE user_id = {message.from_user.id}")
-        row = cursor.fetchall()
-        if row == []:
-            print("Добавляю нового пользователя")
-            cursor.execute(f"INSERT INTO users_data (user_id) VALUES ({message.from_user.id});")
-            con.commit()
-            print("Пользователь @" + message.from_user.username + " с id-" + message.from_user.id + " добавлен")
-    except Exception:
-        print("sql eror")
+    # try:
+    cursor.execute(f"SELECT user_id FROM users_data WHERE user_id = {message.from_user.id}")
+    row = cursor.fetchall()
+    if row == []:
+        cursor.execute(f"INSERT INTO users_data (user_id) VALUES ({str(message.from_user.id)});")
+        con.commit()
+        logging.info(f"Пользователь @{message.from_user.username} с id - {message.from_user.id} добавлен")
+    # except Exception:
+    #     logging.error("Не удалось добавить пользователя")
     await message.answer(
         f"Приветствую @{message.from_user.username}🙂🤝🏼 "
         f"\nЯ бот компании Stratton.kz"
@@ -48,7 +48,15 @@ async def start(message: Message):
 @router.message(F.text == "Подробная информация")
 async def info(message: Message):
     await message.answer(
-        f"Тут должна быть информация о компании которой у меня не оказалось. Как то так :)",
+        f"Компания Stratton.kz  🏬"
+        f"\n"
+        f"\n🤖  Мы разрабатываем чат-боты Telegram для бизнеса. Наши боты сделаны не на конструкторах, а пишутся с нуля."
+        f"\n"
+        f"\n🤖  Мы разрабатываем чат-боты Instagram для бизнеса. Автоматизируйте общение с клиентами и улучшайте продажи в Instagram. Просто и удобно."
+        f"\n"
+        f"\nРоботизация бизнес-процессов избавляет от рутины и выгорания сотрудников, повышает точность и скорость выполнения операций."
+        f"\n"
+        f"\nПовысьте узнаваемость своих услуг и продуктов с помощью удобного сайта.",
         reply_markup=keyboards.main_actions(message=message, add_remove_exam=exist_datetime(message.from_user.id))
     )
 
@@ -99,7 +107,7 @@ async def add_remove_exam(message: Message):
             cursor.execute(f"UPDATE users_data SET date=NULL, time=NULL, test_status=NULL "
                            f"WHERE user_id={message.from_user.id}")
             con.commit()
-            return await message.answer(text="Ваше тестирование удалено",
+            return await message.answer(text="Ваше тестирование удалено  ❌",
                                         reply_markup=keyboards.main_actions(message=message,
                                                                             add_remove_exam=exist_datetime(
                                                                                 message.from_user.id)))
@@ -137,11 +145,11 @@ async def video(message: Message):
     print(date_to)
     print(date_to + datetime.timedelta(minutes=3))
     if message.video.duration > 30:
-        await message.reply("Извините, видео должно быть не более 30 секунд.")
+        await message.reply("Извините, видео должно быть не более 30 секунд.  🕗")
 
     if date_to < now < date_to + config.exam_times["duration"]:  # or config.DEV_MODE:
         await message.send_copy(message.from_user.id,
                                 reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
                                                                                  sender=message.from_user.id))
     else:
-        await message.answer("Вы отправили видео не в срок!")
+        await message.answer("Вы отправили видео не в срок!  ⌛️")

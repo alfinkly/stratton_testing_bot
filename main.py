@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import InlineKeyboardMarkup
-
+import logging
 import callback_router
 import config
 import keyboards
@@ -27,18 +27,19 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                              keyboard_is_exam_complete(from_who=1, sender=callback.from_user.id))
     elif callback_data.from_who == 1:
         if callback_data.is_complete == 0:
-            await callback.message.answer(text=f"Вы отклонили тестирование")
+            await callback.message.answer(text=f"Вы отклонили тестирование  ❌")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text="Тестирование отклонен")
+            await bot.send_message(callback_data.sender, text="Тестирование отклонен  ❌")
         elif callback_data.is_complete == 1:
-            await callback.message.answer(text=f"Вы приняли тестирование")
+            await callback.message.answer(text=f"Вы приняли тестирование  ✅")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text="Тестирование принято")
+            await bot.send_message(callback_data.sender, text="Тестирование принято  ✅")
             await send_testing_message(callback, go_to=True)
     await callback.answer()
 
 
 async def start_bot():
+    logging.basicConfig(level=logging.INFO)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
