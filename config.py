@@ -1,4 +1,5 @@
 import datetime
+import mysql.connector
 
 TOKEN = "6996615436:AAGTIPQZk-ASHPX6K7ocN8La2vHq3E7EUA8"
 
@@ -9,7 +10,14 @@ checker_id = 992654384
 
 exam_times = {"duration": datetime.timedelta(minutes=10), "send_notification": datetime.timedelta(minutes=5)}
 
-DEV_MODE = False
+DEV_MODE = True
+
+con = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="MyFuckingSQL%5003",
+  database="stratton_bot_data"
+)
 
 if DEV_MODE:
     exam_times = {"duration": datetime.timedelta(minutes=4), "send_notification": datetime.timedelta(seconds=3)}

@@ -1,15 +1,12 @@
 import calendar
 import datetime
 import logging
-import sqlite3
-
-from aiogram import types
-from aiogram.types import CallbackQuery
-
+import coloredlogs
 import keyboards
+from config import con
 
-con = sqlite3.connect("database.db", timeout=30)
-cursor = con.cursor()
+cursor = con.cursor(buffered=True)
+coloredlogs.install()
 
 
 def galochka_date_change(callback, callback_data, return_keyboard):
@@ -24,7 +21,7 @@ def galochka_date_change(callback, callback_data, return_keyboard):
                                                  month=callback_data.month,
                                                  day=callback_data.day),
                                callback.from_user.id)
-                cursor.execute("UPDATE users_data SET date=? WHERE user_id=?", user_config)
+                cursor.execute("UPDATE users_data SET date=%s WHERE user_id=%s", user_config)
                 con.commit()
                 return_keyboard.inline_keyboard[row][data].text = "✅"
     return return_keyboard
@@ -57,7 +54,7 @@ def galochka_time_change(callback, callback_data, return_keyboard, time):
                       callback_data.hour,
                       callback_data.minute)
                 user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
-                cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
+                cursor.execute("UPDATE users_data SET time=%s WHERE user_id=%s", user_config)
                 con.commit()
                 return_keyboard.inline_keyboard[row][data].text = "✅"
     return return_keyboard
@@ -83,7 +80,7 @@ def galochka_time_db(return_keyboard, callback):
                       # callback_data.minute
                       )
                 # user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
-                # cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
+                # cursor.execute("UPDATE users_data SET time=%s WHERE user_id=%s", user_config)
                 # con.commit()
                 return_keyboard.inline_keyboard[row][data].text = "✅"
     return return_keyboard
@@ -106,7 +103,7 @@ async def send_testing_message(callback=None, message=None, go_to=False):
             cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {callback.from_user.id}")
             print("testsing message")
             if go_to:
-                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (4, callback.from_user.id))
+                cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (4, callback.from_user.id))
                 con.commit()
                 return
             else:
@@ -132,9 +129,9 @@ async def send_testing_message(callback=None, message=None, go_to=False):
                     await callback.message.answer(text="Ваше тестирование не выполнено"
                                                        f"\nПо вопросам пересдачи пишите  ✍️"
                                                        f"\n@strattonautomation")
-                    next_status = 4
+                    next_status = 5
             if next_status != 1:
-                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (next_status, callback.from_user.id))
+                cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (next_status, callback.from_user.id))
                 con.commit()
     except Exception:
         logging.error("Переменная не callback")
@@ -143,7 +140,7 @@ async def send_testing_message(callback=None, message=None, go_to=False):
             cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {message.from_user.id}")
             print("testsing message")
             if go_to:
-                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (4, message.from_user.id))
+                cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (4, message.from_user.id))
                 con.commit()
                 return
             else:
@@ -170,18 +167,34 @@ async def send_testing_message(callback=None, message=None, go_to=False):
                                                        f"\n@strattonautomation")
                     next_status = 4
             if next_status != 1:
-                cursor.execute("UPDATE users_data SET test_status=? WHERE user_id=?", (next_status, message.from_user.id))
+                cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (next_status, message.from_user.id))
                 con.commit()
     except Exception:
         logging.error("Переменная не message")
 
-def is_status_active(message, remove_none=False):
-    cursor.execute(f"SELECT test_status FROM users_data WHERE user_id = {message.from_user.id}")
-    row = cursor.fetchone()
-    if remove_none:
-        if row[0] == 1:
-            return True
-    else:
-        if row[0] is None or row[0] == 1:
-            return True
-    return False
+
+def get_test_status(message):
+    # try:
+        cursor.execute(f"SELECT test_status, user_id FROM users_data WHERE user_id = {message.from_user.id}")
+        row = cursor.fetchone()
+        print(row)
+        if row is None:
+            add_user(message)
+            return row
+        return row[0]
+
+        # if remove_none:
+        #     if row[0] == 1:
+        #         return True
+        # else:
+        #     if row[0] is None or row[0] == 1:
+        #         return True
+        # return False
+    # except Exception:
+    #     logging.error("not a time")
+
+
+def add_user(message):
+    cursor.execute(f"INSERT INTO users_data (user_id) VALUES (%s);", (message.from_user.id,))
+    con.commit()
+    logging.info(f"Пользователь @{message.from_user.username} с id - {message.from_user.id} добавлен")

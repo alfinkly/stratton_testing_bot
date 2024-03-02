@@ -7,15 +7,14 @@ import callback_router
 import config
 import methods
 import routers
-from config import months
+from config import months, con
 from typing import Optional
 from aiogram.filters.callback_data import CallbackData
-
 from factories import *
 from methods import *
 
-con = sqlite3.connect("database.db", timeout=30)
-cursor = con.cursor()
+# con = sqlite3.connect("database.db", timeout=30)
+cursor = con.cursor(buffered=True)
 
 
 def main_actions(message, add_remove_exam=False, remove_sub=False) -> ReplyKeyboardMarkup:
@@ -25,7 +24,7 @@ def main_actions(message, add_remove_exam=False, remove_sub=False) -> ReplyKeybo
         [KeyboardButton(text="Главная"), KeyboardButton(text="Подробная информация"), KeyboardButton(text="Контакты")],
         [KeyboardButton(text="Записаться на тестирование")]
     ]
-    if add_remove_exam and methods.is_status_active(message):
+    if add_remove_exam and methods.get_test_status(message) == 1:
         keyboard[1].append(KeyboardButton(text="Отменить тестирование"))
     if remove_sub:
         keyboard[1].pop(0)
@@ -39,55 +38,67 @@ def main_actions(message, add_remove_exam=False, remove_sub=False) -> ReplyKeybo
 
 
 def get_calendar(year, month, message) -> InlineKeyboardMarkup:
-    caldr = calendar.monthcalendar(year, month)
+    try:
+        caldr = calendar.monthcalendar(year, month)
+        today = datetime.datetime.now()
+        # today = datetime.datetime(day=30, month=3, year=2024)
+        open_days = today + datetime.timedelta(days=7)
+        header = ["❌", f"{months[month]} {year}", "❌"]
+        monthLink = 0
+        if open_days.month != today.month and today.year == open_days.year:
+            logging.info(f"{open_days.month} < {month}")
+            if open_days.month < month:
+                header[0] = months[month - 1]
+                monthLink = month - 1
+            elif open_days.month > month:
+                header[2] = months[month + 1]
+                monthLink = month + 1
+            elif open_days.month > today.month:
+                header[0] = months[month - 1]
+                monthLink = month - 1
+        calendar_buttons = []
+        for row in range(len(caldr)):
+            calendar_buttons.append([])
+            for column in range(len(caldr[row])):
+                date_num = caldr[row][column]
+                if date_num == 0:
+                    date_num = " "
+                elif not(today.timetuple().tm_yday <= datetime.datetime(year, month, date_num).timetuple().tm_yday <
+                         today.timetuple().tm_yday+7) or today.hour == 23:
+                    date_num = "❌"
+                if date_num == " " or date_num == "❌":
+                    calendar_buttons[row].append(InlineKeyboardButton(text=str(date_num), callback_data="nothing"))
+                else:
+                    calendar_buttons[row].append(InlineKeyboardButton(
+                        text=str(date_num),
+                        callback_data=DateCallbackFactory(action="set_date", day=date_num,
+                                                          month=month, year=year).pack()))
 
-    today = datetime.datetime.now()
-    texts = [month - 1, f"{months[month]} {year}", month + 1]
-
-    if today.month > texts[0] and today.year > year and today.hour != 23:
-        texts[0] = "❌"
-    calendar_buttons = []
-    for row in range(len(caldr)):
-        calendar_buttons.append([])
-        for column in range(len(caldr[row])):
-            date_num = caldr[row][column]
-            if date_num == 0:
-                date_num = " "
-            elif date_num < today.day and month <= today.month and today.hour == 23:
-                date_num = "❌"
-            if date_num == " " or date_num == "❌":
-                calendar_buttons[row].append(InlineKeyboardButton(text=str(date_num), callback_data="nothing"))
-            else:
-                calendar_buttons[row].append(InlineKeyboardButton(
-                    text=str(date_num),
-                    callback_data=DateCallbackFactory(action="set_date", day=date_num,
-                                                      month=month, year=year).pack()))
-
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-                            [InlineKeyboardButton(text=months[texts[0]],
-                                                  callback_data=DateCallbackFactory(action="month",
-                                                                                    day=1,
-                                                                                    year=year,
-                                                                                    month=texts[
-                                                                                        0]).pack()),
-                             InlineKeyboardButton(text=texts[1], callback_data="nothing"),
-                             InlineKeyboardButton(text=months[texts[2]],
-                                                  callback_data=DateCallbackFactory(action="month",
-                                                                                    year=year,
-                                                                                    day=1,
-                                                                                    month=texts[
-                                                                                        2]).pack())]
-                        ] + calendar_buttons
-    )
-    cursor.execute(f"SELECT date FROM users_data WHERE user_id = {message.from_user.id}")
-    row = cursor.fetchall()
-    if row != [] and row[0][0] is not None:
-        datetime_object = datetime.datetime.strptime(row[0][0], '%Y-%m-%d %H:%M:%S')
-        kb = galochka_date_db(return_keyboard=kb, db_day=datetime_object.day,
-                              db_month=datetime_object.month,
-                              db_year=datetime_object.year)
-    return kb
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                                [InlineKeyboardButton(text=header[0],
+                                                      callback_data=DateCallbackFactory(action="month",
+                                                                                        day=1,
+                                                                                        year=year,
+                                                                                        month=monthLink).pack()),
+                                 InlineKeyboardButton(text=header[1], callback_data="nothing"),
+                                 InlineKeyboardButton(text=header[2],
+                                                      callback_data=DateCallbackFactory(action="month",
+                                                                                        year=year,
+                                                                                        day=1,
+                                                                                        month=monthLink).pack())]
+                            ] + calendar_buttons
+        )
+        cursor.execute(f"SELECT date FROM users_data WHERE user_id = {message.from_user.id}")
+        row = cursor.fetchall()
+        if row != [] and row[0][0] is not None:
+            datetime_object = datetime.datetime.strptime(row[0][0], '%Y-%m-%d %H:%M:%S')
+            kb = galochka_date_db(return_keyboard=kb, db_day=datetime_object.day,
+                                  db_month=datetime_object.month,
+                                  db_year=datetime_object.year)
+        return kb
+    except Exception:
+        logging.error("Error on get_calendar()")
 
 
 def get_times(callback) -> InlineKeyboardMarkup:

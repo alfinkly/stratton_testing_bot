@@ -1,28 +1,20 @@
-import calendar
 import datetime
 import logging
-
-import aiogram
-import pytz
-from aiogram import Router, F, types, Dispatcher
-from aiogram.enums import ContentType
-from aiogram.filters.callback_data import CallbackData
-import time
+import coloredlogs
+from aiogram import Router, F, types
 import config
 import keyboards
 import methods
 import routers
-from config import months
-import sqlite3
+from config import con
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pytz import utc
 from aiogram.types import InlineKeyboardMarkup
 from factories import *
 from methods import galochka_date_change, send_testing_message
 
 router = Router()
-con = sqlite3.connect("database.db", timeout=30)
-cursor = con.cursor()
+coloredlogs.install(level=logging.DEBUG)
+cursor = con.cursor(buffered=True)
 await_time = False
 
 
@@ -35,8 +27,9 @@ async def send_random_value(callback: types.CallbackQuery, callback_data: DateCa
                                            return_keyboard=return_keyboard)
     try:
         await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-        await callback.message.edit_text(text=f"Дата выполнения задания: {callback_data.day}.{callback_data.month}"
-                                              f".{callback_data.year}")
+        today = datetime.datetime.today().strftime("%d.%m.%Y")
+        print(today)
+        await callback.message.edit_text(text=f"Дата выполнения задания: {today}")
     except Exception:
         print("Клавиатура не изменена")
     await callback.message.answer(f"Выберите удобное время  🕗"
@@ -72,7 +65,7 @@ async def month(callback: types.CallbackQuery, callback_data: DateCallbackFactor
 #     #             print("Edited", callback.message.reply_markup.inline_keyboard[row][data].text, callback_data.hour,
 #     #                   callback_data.minute)
 #     #             user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
-#     #             cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
+#     #             cursor.execute("UPDATE users_data SET time=%s WHERE user_id=%s", user_config)
 #     #             con.commit()
 #     #             return_keyboard.inline_keyboard[row][data].text = "✅"
 #     cursor.execute(f"SELECT time FROM users_data WHERE user_id = {callback.from_user.id}")
@@ -91,7 +84,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
     correct_time = f"{callback_data.hour}:{callback_data.minute}0"
     # correct_time = f"20:24"
     user_config = (correct_time, callback.from_user.id)
-    cursor.execute("UPDATE users_data SET time=? WHERE user_id=?", user_config)
+    cursor.execute("UPDATE users_data SET time=%s WHERE user_id=%s", user_config)
     con.commit()
     for row in range(len(callback.message.reply_markup.inline_keyboard)):
         for data in range(len(callback.message.reply_markup.inline_keyboard[row])):
@@ -102,7 +95,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                     [data].text == f"{callback_data.hour}:{callback_data.minute}0":
                 print("Edited", callback.message.reply_markup.inline_keyboard[row][data].text, callback_data.hour,
                       callback_data.minute)
-                cursor.execute("UPDATE users_data SET time=?, test_status=1 WHERE user_id=?",
+                cursor.execute("UPDATE users_data SET time=%s, test_status=1 WHERE user_id=%s",
                                (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id))
                 con.commit()
                 cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {callback.from_user.id}")
@@ -119,16 +112,16 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                                 hour=date_now.hour, minute=date_now.minute)
                     date_to += datetime.timedelta(minutes=1)
                     timed = datetime.time(hour=date_to.hour, minute=date_to.minute).strftime("%H:%M")
-                    cursor.execute(f"update users_data set date=?, time=?"
+                    cursor.execute(f"update users_data set date=%s, time=%s"
                                    f" where user_id={callback.from_user.id}",
                                    (date_to, f"{timed}"))
                     con.commit()
 
-                scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
+                scheduler = AsyncIOScheduler(timezone="Asia/Aqtobe")
                 try:
                     scheduler.remove_all_jobs()
                     scheduler.shutdown()
-                except:
+                except Exception:
                     print("schedulers shutdown error")
                 scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
                                   kwargs={"callback": callback})
@@ -175,42 +168,50 @@ async def month(callback: types.CallbackQuery):
 
 @router.message(F.text)
 async def format_time(message: types.Message):
-    cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
-    if methods.is_status_active(message, remove_none=True):
-        time = datetime.datetime.strptime(message.text, "%H:%M")
-        cursor.execute(f"UPDATE users_data SET time='{time.strftime('%H:%M')}', test_status=1 WHERE user_id={message.from_user.id}")
-        con.commit()
-        cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
-        row_db = cursor.fetchone()
-        print(row_db)
-        if row_db != [] and row_db[0][0] is not None and row_db[0][1] is not None:
-            date_to = datetime.datetime.strptime(row_db[0].split(" ")[0] + " " + time.strftime('%H:%M'), '%Y-%m-%d %H:%M')
-        scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
-        try:
-            scheduler.remove_all_jobs()
-            scheduler.shutdown()
-        except:
-            print("schedulers shutdown error")
-        scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
-                          kwargs={"message": message})
-        scheduler.add_job(send_testing_message, trigger='date',
-                          run_date=str(date_to + config.exam_times["send_notification"]),
-                          kwargs={"message": message})
-        scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
-                                                                             config.exam_times["duration"]),
-                          kwargs={"message": message})
-        scheduler.start()
-        cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
-        row_db = cursor.fetchall()
-        dates = row_db[0][0].split(' ')[0].split('-')
-        date = f"{dates[2]}.{dates[1]}.{dates[0]}"
-        await message.answer(text="Ура! Вы назначили себе задание! 🙂"
-                                  "\n"
-                                  f"\nДата: {date}"
-                                  f"\nВремя: {row_db[0][1]}"
-                                  "\nВремя на выполнение: 4 часа"
-                                  "\n"
-                                  "\nТеперь ожидайте задание 🙂",
-                             reply_markup=keyboards.main_actions(message=message,
-                                                                 add_remove_exam=
-                                                                 routers.exist_datetime(message.from_user.id)))
+    try:
+        cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
+        if methods.get_test_status(message) == 1:
+            time = datetime.datetime.strptime(message.text, "%H:%M")
+            now = datetime.datetime.now()
+            if time.hour <= now.hour and time.minute < now.minute:
+                return await message.answer(text="Указанное время уже прошло ⌛️. ")
+            cursor.execute(
+                f"UPDATE users_data SET time='{time.strftime('%H:%M')}', test_status=1 WHERE user_id={message.from_user.id}")
+            con.commit()
+            cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
+            row_db = cursor.fetchone()
+            print(row_db)
+            if row_db != [] and row_db[0][0] is not None and row_db[0][1] is not None:
+                date_to = datetime.datetime.strptime(row_db[0].split(" ")[0] + " " + time.strftime('%H:%M'),
+                                                     '%Y-%m-%d %H:%M')
+            scheduler = AsyncIOScheduler(timezone="Asia/Aqtobe")
+            try:
+                scheduler.remove_all_jobs()
+                scheduler.shutdown()
+            except:
+                print("schedulers shutdown error")
+            scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
+                              kwargs={"message": message})
+            scheduler.add_job(send_testing_message, trigger='date',
+                              run_date=str(date_to + config.exam_times["send_notification"]),
+                              kwargs={"message": message})
+            scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
+                                                                                 config.exam_times["duration"]),
+                              kwargs={"message": message})
+            scheduler.start()
+            cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
+            row_db = cursor.fetchall()
+            dates = row_db[0][0].split(' ')[0].split('-')
+            date = f"{dates[2]}.{dates[1]}.{dates[0]}"
+            await message.answer(text="Ура! Вы назначили себе задание! 🙂"
+                                      "\n"
+                                      f"\nДата: {date}"
+                                      f"\nВремя: {row_db[0][1]}"
+                                      "\nВремя на выполнение: 4 часа"
+                                      "\n"
+                                      "\nТеперь ожидайте задание 🙂",
+                                 reply_markup=keyboards.main_actions(message=message,
+                                                                     add_remove_exam=
+                                                                     routers.exist_datetime(message.from_user.id)))
+    except ValueError:
+        logging.error("Time format error")

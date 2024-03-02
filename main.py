@@ -2,6 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import InlineKeyboardMarkup
 import logging
+import coloredlogs
 import callback_router
 import config
 import keyboards
@@ -13,8 +14,7 @@ from methods import send_testing_message
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 dp.include_routers(routers.router, callback_router.router)
-
-
+coloredlogs.install()
 @dp.callback_query(IsCompleteCallbackFactory.filter(F.action == "isComplete"))
 async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactory):
     if callback_data.from_who == 0:
@@ -39,7 +39,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
 
 
 async def start_bot():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
