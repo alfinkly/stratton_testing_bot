@@ -1,11 +1,14 @@
 import datetime
 import logging
 import coloredlogs
+import pytz
+import tzlocal
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import methods
-from methods import exist_datetime
+from methods import exist_datetime, send_testing_message
 import config
 from config import con
 import keyboards
@@ -43,9 +46,11 @@ async def info(message: Message):
         f"\n"
         f"\n🤖  Мы разрабатываем чат-боты Telegram для бизнеса. Наши боты сделаны не на конструкторах, а пишутся с нуля."
         f"\n"
-        f"\n🤖  Мы разрабатываем чат-боты Instagram для бизнеса. Автоматизируйте общение с клиентами и улучшайте продажи в Instagram. Просто и удобно."
+        f"\n🤖  Мы разрабатываем чат-боты Instagram для бизнеса. Автоматизируйте общение с клиентами и улучшайте "
+        f"продажи в Instagram. Просто и удобно."
         f"\n"
-        f"\n🤖  Роботизация бизнес-процессов избавляет от рутины и выгорания сотрудников, повышает точность и скорость выполнения операций."
+        f"\n🤖  Роботизация бизнес-процессов избавляет от рутины и выгорания сотрудников, повышает точность и "
+        f"скорость выполнения операций."
         f"\n"
         f"\n📈  Повысьте узнаваемость своих услуг и продуктов с помощью удобного сайта.",
         reply_markup=keyboards.main_actions(message=message, add_remove_exam=exist_datetime(message.from_user.id))
@@ -66,16 +71,27 @@ async def info(message: Message):
     if methods.get_test_status(message) in [1, None]:
         today = datetime.datetime.now()
         await message.answer(
-            f"Выберите удобную дату  📅",
+            f"Выберите удобную дату: 📅",
             reply_markup=keyboards.get_calendar(today.year, today.month, message)
         )
         # except Exception:
         #     print("Error 4444")
+    elif methods.get_test_status(message) in [2, 3]:
+        await message.answer(
+            "Ваше тестирование началось, успехов!\n\n"
+            "Время на выполнение: 4 часа\n"
+            "Задание будет на проверке когда вы отправите видео или ссылку и нажмете "
+            "кнопку \"Отправить тестирование\" ✅\n\n"
+            "Задание: {Задание}\n\n"
+            "Результат выслать в формате:\n"
+            "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
+            "- ссылка на запущенного бота.",
+        )
     elif methods.get_test_status(message) in [4, 5]:
         await message.answer(
-            f"Тестирование было пройдено"
+            f"Тестирование было пройдено."
             f"\n"
-            f"\nПо вопросам пересдачи пишите  ✍️"
+            f"\nПо вопросам пересдачи пишите ✍️"
             f"\n@strattonautomation",
         )
 
@@ -95,15 +111,15 @@ async def add_remove_exam(message: Message):
             cursor.execute(f"UPDATE users_data SET date=NULL, time=NULL, test_status=NULL "
                            f"WHERE user_id={message.from_user.id}")
             con.commit()
-            return await message.answer(text="Ваше тестирование удалено  ❌",
+            return await message.answer(text="Ваше тестирование удалено. ❌",
                                         reply_markup=keyboards.main_actions(message=message,
                                                                             add_remove_exam=exist_datetime(
                                                                                 message.from_user.id)))
     except Exception:
-        return await message.answer(text="Не удалось удалить тестирование",
+        return await message.answer(text="Не удалось удалить тестирование.",
                                     reply_markup=keyboards.main_actions(message=message, add_remove_exam=exist_datetime(
                                         message.from_user.id)))
-    return await message.answer(text="Нельзя отменить пройденное тестирование  ❌",
+    return await message.answer(text="Нельзя отменить пройденное тестирование. ❌",
                                 reply_markup=keyboards.main_actions(message=message, add_remove_exam=exist_datetime(
                                     message.from_user.id)))
 
@@ -124,20 +140,51 @@ async def start(message: Message):
 
 @router.message(F.video)
 async def video(message: Message):
-    cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
-    row_db = cursor.fetchall()
-    date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1] +
-                                         ":00", '%Y-%m-%d %H:%M:%S')
-    now = datetime.datetime.now()
-    # print(now < date_to)
-    # print(date_to)
-    # print(date_to + datetime.timedelta(minutes=3))
-    if message.video.duration > 30:
-        await message.reply("Извините, видео должно быть не более 30 секунд.  🕗")
+    if methods.get_test_status(message) in [2, 3]:
+        cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
+        row_db = cursor.fetchall()
+        date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1], '%Y-%m-%d %H:%M')
+        now = datetime.datetime.now()
+        video_format = message.video.mime_type.lower()
+        print(video_format)
+        if message.video.duration > 40:
+            return await message.reply("Извините, видео должно быть не более 40 секунд. 🕗")
+        print("Видео весит = ", message.video.file_size)
+        if message.video.file_size > 10485760:  # 10 МБ в байтах
+            return await message.reply("Извините, видео должно весить не более 10МБ. 💾")
+        if not (video_format in ["video/mp4", "video/quicktime"]):
+            return await message.reply("Извините, формат видео недопустим. Только видео с расширением .mov или .mp4 ")
+        if date_to < now < date_to + config.exam_times["duration"]:  # or config.DEV_MODE:
+            await message.send_copy(message.from_user.id,
+                                    reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
+                                                                                     sender=message.from_user.id))
+    elif methods.get_test_status(message) in [4, 5]:
+        await message.answer("Вы отправили видео не в срок! ⌛️")
 
-    if date_to < now < date_to + config.exam_times["duration"]:  # or config.DEV_MODE:
-        await message.send_copy(message.from_user.id,
-                                reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
-                                                                                 sender=message.from_user.id))
-    else:
-        await message.answer("Вы отправили видео не в срок!  ⌛️")
+
+@router.message(F.text)
+async def format_time(message: Message):
+    cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
+    if methods.get_test_status(message) == 1:
+        for time_format in ["%H:%M", "%H %M", "%H-%M", "%H.%M"]:
+            try:
+                time = datetime.datetime.strptime(message.text, time_format)
+                await methods.appoint_test(message, time)
+            except ValueError:
+                pass
+    elif methods.get_test_status(message) in [2, 3]:
+        if message.text.startswith("@") and message.text.endswith("bot") or \
+                message.text.startswith("https://t.me/") and message.text.endswith("bot"):
+            cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
+            row_db = cursor.fetchall()
+            date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1], '%Y-%m-%d %H:%M')
+            now = datetime.datetime.now()
+            if date_to < now < date_to + config.exam_times["duration"]:  # or config.DEV_MODE:
+                await message.send_copy(message.from_user.id,
+                                        reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
+                                                                                         sender=message.from_user.id))
+        else:
+            return await message.reply(
+                "Это не похоже на ссылку на бота.")
+
+

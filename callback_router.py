@@ -1,6 +1,7 @@
 import datetime
 import logging
 import coloredlogs
+import tzlocal
 from aiogram import Router, F, types
 import config
 import keyboards
@@ -15,13 +16,12 @@ from methods import galochka_date_change, send_testing_message
 router = Router()
 coloredlogs.install(level=logging.DEBUG)
 cursor = con.cursor(buffered=True)
-await_time = False
 
 
 @router.callback_query(DateCallbackFactory.filter(F.action == "set_date"))
 async def send_random_value(callback: types.CallbackQuery, callback_data: DateCallbackFactory):
     return_keyboard = callback.message.reply_markup
-    cursor.execute(f"UPDATE users_data set test_status=1, await_time=1 where user_id={callback.from_user.id}")
+    cursor.execute(f"UPDATE users_data set test_status=1 where user_id={callback.from_user.id}")
     con.commit()
     return_keyboard = galochka_date_change(callback=callback, callback_data=callback_data,
                                            return_keyboard=return_keyboard)
@@ -93,16 +93,14 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
 
             if callback.message.reply_markup.inline_keyboard[row] \
                     [data].text == f"{callback_data.hour}:{callback_data.minute}0":
-                print("Edited", callback.message.reply_markup.inline_keyboard[row][data].text, callback_data.hour,
-                      callback_data.minute)
                 cursor.execute("UPDATE users_data SET time=%s, test_status=1 WHERE user_id=%s",
                                (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id))
                 con.commit()
                 cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {callback.from_user.id}")
                 row_db = cursor.fetchall()
                 if row_db != [] and row_db[0][0] is not None and row_db[0][1] is not None:
-                    date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1] +
-                                                         ":00", '%Y-%m-%d %H:%M:%S')
+                    date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1],
+                                                         '%Y-%m-%d %H:%M')
                 else:
                     print("No datetime in database")
                     return callback.message.answer(text="Произошла ошибка")
@@ -116,21 +114,23 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                    f" where user_id={callback.from_user.id}",
                                    (date_to, f"{timed}"))
                     con.commit()
-
-                scheduler = AsyncIOScheduler(timezone="Asia/Aqtobe")
-                try:
-                    scheduler.remove_all_jobs()
-                    scheduler.shutdown()
-                except Exception:
-                    print("schedulers shutdown error")
+                scheduler = AsyncIOScheduler(timezone=tzlocal.get_localzone_name())
+                # try:
+                #     scheduler.remove_all_jobs()
+                #     scheduler.shutdown()
+                # except Exception:
+                #     print("schedulers shutdown error")
+                started_at = datetime.datetime.now()
+                cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, callback.from_user.id))
+                con.commit()
                 scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
-                                  kwargs={"callback": callback})
+                                  kwargs={"callback": callback, "run_date": started_at})
                 scheduler.add_job(send_testing_message, trigger='date',
                                   run_date=str(date_to + config.exam_times["send_notification"]),
-                                  kwargs={"callback": callback})
+                                  kwargs={"callback": callback, "run_date": started_at})
                 scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
                                                                                      config.exam_times["duration"]),
-                                  kwargs={"callback": callback})
+                                  kwargs={"callback": callback, "run_date": started_at})
                 scheduler.start()
 
                 return_keyboard.inline_keyboard[row][data].text = "✅"
@@ -166,52 +166,3 @@ async def month(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@router.message(F.text)
-async def format_time(message: types.Message):
-    try:
-        cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
-        if methods.get_test_status(message) == 1:
-            time = datetime.datetime.strptime(message.text, "%H:%M")
-            now = datetime.datetime.now()
-            if time.hour <= now.hour and time.minute < now.minute:
-                return await message.answer(text="Указанное время уже прошло ⌛️. ")
-            cursor.execute(
-                f"UPDATE users_data SET time='{time.strftime('%H:%M')}', test_status=1 WHERE user_id={message.from_user.id}")
-            con.commit()
-            cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
-            row_db = cursor.fetchone()
-            print(row_db)
-            if row_db != [] and row_db[0][0] is not None and row_db[0][1] is not None:
-                date_to = datetime.datetime.strptime(row_db[0].split(" ")[0] + " " + time.strftime('%H:%M'),
-                                                     '%Y-%m-%d %H:%M')
-            scheduler = AsyncIOScheduler(timezone="Asia/Aqtobe")
-            try:
-                scheduler.remove_all_jobs()
-                scheduler.shutdown()
-            except:
-                print("schedulers shutdown error")
-            scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
-                              kwargs={"message": message})
-            scheduler.add_job(send_testing_message, trigger='date',
-                              run_date=str(date_to + config.exam_times["send_notification"]),
-                              kwargs={"message": message})
-            scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
-                                                                                 config.exam_times["duration"]),
-                              kwargs={"message": message})
-            scheduler.start()
-            cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
-            row_db = cursor.fetchall()
-            dates = row_db[0][0].split(' ')[0].split('-')
-            date = f"{dates[2]}.{dates[1]}.{dates[0]}"
-            await message.answer(text="Ура! Вы назначили себе задание! 🙂"
-                                      "\n"
-                                      f"\nДата: {date}"
-                                      f"\nВремя: {row_db[0][1]}"
-                                      "\nВремя на выполнение: 4 часа"
-                                      "\n"
-                                      "\nТеперь ожидайте задание 🙂",
-                                 reply_markup=keyboards.main_actions(message=message,
-                                                                     add_remove_exam=
-                                                                     routers.exist_datetime(message.from_user.id)))
-    except ValueError:
-        logging.error("Time format error")

@@ -43,19 +43,31 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
         today = datetime.datetime.now()
         # today = datetime.datetime(day=30, month=3, year=2024)
         open_days = today + datetime.timedelta(days=7)
-        header = ["❌", f"{months[month]} {year}", "❌"]
+        header = [InlineKeyboardButton(text="❌", callback_data="nothing"),
+                  f"{months[month]} {year}",
+                  InlineKeyboardButton(text="❌", callback_data="nothing")]
         monthLink = 0
         if open_days.month != today.month and today.year == open_days.year:
             logging.info(f"{open_days.month} < {month}")
             if open_days.month < month:
-                header[0] = months[month - 1]
+                header[0] = InlineKeyboardButton(text=months[month - 1],
+                                                 callback_data=DateCallbackFactory(action="month",
+                                                                                   day=1,
+                                                                                   year=year,
+                                                                                   month=month - 1).pack())
                 monthLink = month - 1
             elif open_days.month > month:
-                header[2] = months[month + 1]
-                monthLink = month + 1
+                header[2] = InlineKeyboardButton(text=months[month + 1],
+                                                 callback_data=DateCallbackFactory(action="month",
+                                                                                   day=1,
+                                                                                   year=year,
+                                                                                   month=month + 1).pack())
             elif open_days.month > today.month:
-                header[0] = months[month - 1]
-                monthLink = month - 1
+                header[0] = InlineKeyboardButton(text=months[month - 1],
+                                                 callback_data=DateCallbackFactory(action="month",
+                                                                                   day=1,
+                                                                                   year=year,
+                                                                                   month=month - 1).pack())
         calendar_buttons = []
         for row in range(len(caldr)):
             calendar_buttons.append([])
@@ -63,8 +75,8 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
                 date_num = caldr[row][column]
                 if date_num == 0:
                     date_num = " "
-                elif not(today.timetuple().tm_yday <= datetime.datetime(year, month, date_num).timetuple().tm_yday <
-                         today.timetuple().tm_yday+7) or today.hour == 23:
+                elif not (today.timetuple().tm_yday <= datetime.datetime(year, month, date_num).timetuple().tm_yday <
+                          today.timetuple().tm_yday + 7) or (date_num == today.day and today.hour == 23):
                     date_num = "❌"
                 if date_num == " " or date_num == "❌":
                     calendar_buttons[row].append(InlineKeyboardButton(text=str(date_num), callback_data="nothing"))
@@ -76,17 +88,9 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
 
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
-                                [InlineKeyboardButton(text=header[0],
-                                                      callback_data=DateCallbackFactory(action="month",
-                                                                                        day=1,
-                                                                                        year=year,
-                                                                                        month=monthLink).pack()),
+                                [header[0],
                                  InlineKeyboardButton(text=header[1], callback_data="nothing"),
-                                 InlineKeyboardButton(text=header[2],
-                                                      callback_data=DateCallbackFactory(action="month",
-                                                                                        year=year,
-                                                                                        day=1,
-                                                                                        month=monthLink).pack())]
+                                 header[2]]
                             ] + calendar_buttons
         )
         cursor.execute(f"SELECT date FROM users_data WHERE user_id = {message.from_user.id}")
