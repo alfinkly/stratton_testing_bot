@@ -10,7 +10,7 @@ checker_id = 992654384
 
 exam_times = {"duration": datetime.timedelta(minutes=10), "send_notification": datetime.timedelta(minutes=5)}
 
-DEV_MODE = True
+DEV_MODE = False
 
 con = mysql.connector.connect(
   host="localhost",

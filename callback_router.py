@@ -159,9 +159,10 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
 async def month(callback: types.CallbackQuery):
     await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
     await callback.message.edit_text(text="Вы вернулись назад  ◀️")
+    today = datetime.datetime.today()
     await callback.message.answer(
         f"Выберите удобную дату  📅",
-        reply_markup=keyboards.get_calendar(2024, 2, callback)
+        reply_markup=keyboards.get_calendar(today.year, today.month, callback)
     )
     await callback.answer()
 

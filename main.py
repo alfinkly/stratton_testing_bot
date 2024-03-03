@@ -7,7 +7,7 @@ import callback_router
 import config
 import keyboards
 import routers
-from config import TOKEN
+from config import TOKEN, con
 from factories import IsCompleteCallbackFactory, TimeCallbackFactory
 from methods import send_testing_message
 
@@ -15,6 +15,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 dp.include_routers(routers.router, callback_router.router)
 coloredlogs.install()
+cursor = con.cursor()
 
 
 @dp.callback_query(IsCompleteCallbackFactory.filter(F.action == "isComplete"))
@@ -27,6 +28,8 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
             await send_testing_message(callback, go_to=True)
             await callback.message.send_copy(config.checker_id, reply_markup=keyboards.
                                              keyboard_is_exam_complete(from_who=1, sender=callback.from_user.id))
+            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (4, callback.from_user.id))
+            con.commit()
     elif callback_data.from_who == 1:
         if callback_data.is_complete == 0:
             await callback.message.answer(text=f"Вы отклонили тестирование ❌")

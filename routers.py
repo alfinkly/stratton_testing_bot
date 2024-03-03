@@ -76,18 +76,9 @@ async def info(message: Message):
         )
         # except Exception:
         #     print("Error 4444")
-    elif methods.get_test_status(message) in [2, 3]:
-        await message.answer(
-            "Ваше тестирование началось, успехов!\n\n"
-            "Время на выполнение: 4 часа\n"
-            "Задание будет на проверке когда вы отправите видео или ссылку и нажмете "
-            "кнопку \"Отправить тестирование\" ✅\n\n"
-            "Задание: {Задание}\n\n"
-            "Результат выслать в формате:\n"
-            "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-            "- ссылка на запущенного бота.",
-        )
-    elif methods.get_test_status(message) in [4, 5]:
+    elif methods.get_test_status(message) in [2, 3, 4]:
+        await message.answer("Нельзя перезаписать начавшееся тестирование. ❌")
+    elif methods.get_test_status(message) in [5, 6]:
         await message.answer(
             f"Тестирование было пройдено."
             f"\n"
@@ -115,13 +106,20 @@ async def add_remove_exam(message: Message):
                                         reply_markup=keyboards.main_actions(message=message,
                                                                             add_remove_exam=exist_datetime(
                                                                                 message.from_user.id)))
+        elif methods.get_test_status(message) in [2, 3, 4]:
+            return await message.answer(text="Нельзя отменить начавшееся тестирование. ❌",
+                                        reply_markup=keyboards.main_actions(message=message,
+                                                                            add_remove_exam=exist_datetime(
+                                                                                message.from_user.id)))
+        elif methods.get_test_status(message) in [5, 6]:
+            return await message.answer(text="Нельзя отменить пройденное тестирование. ❌",
+                                        reply_markup=keyboards.main_actions(message=message,
+                                                                            add_remove_exam=exist_datetime(
+                                                                                message.from_user.id)))
     except Exception:
         return await message.answer(text="Не удалось удалить тестирование.",
                                     reply_markup=keyboards.main_actions(message=message, add_remove_exam=exist_datetime(
                                         message.from_user.id)))
-    return await message.answer(text="Нельзя отменить пройденное тестирование. ❌",
-                                reply_markup=keyboards.main_actions(message=message, add_remove_exam=exist_datetime(
-                                    message.from_user.id)))
 
 
 @router.message(Command("remake"))
@@ -158,8 +156,11 @@ async def video(message: Message):
             await message.send_copy(message.from_user.id,
                                     reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
                                                                                      sender=message.from_user.id))
-    elif methods.get_test_status(message) in [4, 5]:
+            con.commit()
+    elif methods.get_test_status(message) in [5, 6]:
         await message.answer("Вы отправили видео не в срок! ⌛️")
+    elif methods.get_test_status(message) == 4:
+        await message.answer("Вы уже отправили тестирование! ❌")
 
 
 @router.message(F.text)
@@ -173,8 +174,10 @@ async def format_time(message: Message):
             except ValueError:
                 pass
     elif methods.get_test_status(message) in [2, 3]:
-        if message.text.startswith("@") and message.text.endswith("bot") or \
-                message.text.startswith("https://t.me/") and message.text.endswith("bot"):
+        print("WHAT?  ", " " in "@ asdbot")
+        if (message.text.startswith("@") and message.text.endswith("bot") and not (" " in message.text)) or \
+                (message.text.startswith("https://t.me/") and message.text.endswith("bot") and
+                 not (" " in message.text)):
             cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
             row_db = cursor.fetchall()
             date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1], '%Y-%m-%d %H:%M')
@@ -183,8 +186,8 @@ async def format_time(message: Message):
                 await message.send_copy(message.from_user.id,
                                         reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
                                                                                          sender=message.from_user.id))
+
         else:
-            return await message.reply(
-                "Это не похоже на ссылку на бота.")
-
-
+            return await message.reply("Это не похоже на ссылку на бота.")
+    elif methods.get_test_status(message) == 4:
+        await message.answer("Вы уже отправили тестирование! ❌")

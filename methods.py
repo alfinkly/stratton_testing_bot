@@ -106,7 +106,7 @@ async def send_testing_message(callback=None, message=None, go_to=False, run_dat
 
         print("testsing message")
         if go_to:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (4, callback.from_user.id))
+            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, callback.from_user.id))
             con.commit()
             return
         status, run_date_db = cursor.fetchone()
@@ -145,7 +145,7 @@ async def send_testing_message(callback=None, message=None, go_to=False, run_dat
     elif message is not None:
         cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {message.from_user.id}")
         if go_to:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (4, message.from_user.id))
+            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, message.from_user.id))
             con.commit()
             return
         status, run_date_db = cursor.fetchone()
@@ -175,7 +175,7 @@ async def send_testing_message(callback=None, message=None, go_to=False, run_dat
                 await message.answer(text="Ваше тестирование не выполнено"
                                           f"\nПо вопросам пересдачи пишите  ✍️"
                                           f"\n@strattonautomation")
-                next_status = 4
+                next_status = 5
         if next_status != 1:
             cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
                            (next_status, message.from_user.id))
@@ -191,18 +191,6 @@ def get_test_status(message):
         add_user(message)
         return row
     return row[0]
-
-    # if remove_none:
-    #     if row[0] == 1:
-    #         return True
-    # else:
-    #     if row[0] is None or row[0] == 1:
-    #         return True
-    # return False
-
-
-# except Exception:
-#     logging.error("not a time")
 
 
 def add_user(message):
