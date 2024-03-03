@@ -4,7 +4,6 @@ import logging
 import coloredlogs
 import tzlocal
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
 import config
 import keyboards
 from config import con
@@ -252,5 +251,5 @@ async def appoint_test(message, time):
                               "\nТеперь ожидайте задание 🙂",
                          reply_markup=keyboards.main_actions(message=message,
                                                              add_remove_exam=
-                                                             methods.exist_datetime(
+                                                             exist_datetime(
                                                                  message.from_user.id)))
