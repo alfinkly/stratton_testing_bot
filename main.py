@@ -1,8 +1,13 @@
 import asyncio
+import datetime
+
+import tzlocal
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import InlineKeyboardMarkup
 import logging
 import coloredlogs
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 import callback_router
 import config
 import keyboards
@@ -43,11 +48,36 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
     await callback.answer()
 
 
+async def reactive_jobs():
+    cursor = con.cursor(buffered=True)
+    cursor.execute("SELECT user_id, date, time FROM stratton_bot_data.users_data "
+                   "WHERE user_id is not null and date is not null and time is not null and test_status = 1")
+    users = cursor.fetchall()
+    for user in users:
+        print(user)
+        date_to = datetime.datetime.strptime(user[1].split(" ")[0] + " " + user[2],
+                                             '%Y-%m-%d %H:%M')
+        scheduler = AsyncIOScheduler(timezone=tzlocal.get_localzone_name())
+        started_at = datetime.datetime.now()
+        cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, user[0]))
+        con.commit()
+
+        scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
+                          kwargs={"callback": callback, "run_date": started_at})
+        scheduler.add_job(send_testing_message, trigger='date',
+                          run_date=str(date_to + config.exam_times["send_notification"]),
+                          kwargs={"callback": callback, "run_date": started_at})
+        scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
+                                                                             config.exam_times["duration"]),
+                          kwargs={"callback": callback, "run_date": started_at})
+        scheduler.start()
+
+
 async def start_bot():
+    await reactive_jobs()
     logging.basicConfig(level=logging.DEBUG)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(start_bot())

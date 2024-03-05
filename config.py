@@ -8,9 +8,13 @@ months = {1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрел�
 
 # checker_id = 992654384   # Deaspecty
 checker_id = 564023521
-exam_times = {"duration": datetime.timedelta(minutes=10), "send_notification": datetime.timedelta(minutes=5)}
 
-DEV_MODE = False
+exam_times = {
+    "duration": datetime.timedelta(hours=4),
+    "send_notification": datetime.timedelta(hours=3, minutes=50)
+}
+
+DEV_MODE = True
 
 task = "\nЗадания по Python." + \
 "\nЗадание 1." + \
@@ -41,5 +45,6 @@ con = mysql.connector.connect(
 )
 
 if DEV_MODE:
+    token = "6539285350:AAFMZDRbLu3l5vDlHnFdO4mw8Zf1dDGvJfI"
     exam_times = {"duration": datetime.timedelta(minutes=4), "send_notification": datetime.timedelta(seconds=3)}
     checker_id = 992654384

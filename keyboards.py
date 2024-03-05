@@ -18,6 +18,7 @@ cursor = con.cursor(buffered=True)
 
 
 def main_actions(message, add_remove_exam=False, remove_sub=False) -> ReplyKeyboardMarkup:
+    cursor = con.cursor()
     cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
     status = cursor.fetchone()
     keyboard = [
