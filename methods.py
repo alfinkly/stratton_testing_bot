@@ -8,11 +8,12 @@ import config
 import keyboards
 from config import con
 
-cursor = con.cursor(buffered=True)
+# cursor = con.cursor(buffered=True)
 coloredlogs.install()
 
 
 def galochka_date_change(callback, callback_data, return_keyboard):
+    cursor = con.cursor(buffered=True)
     return_keyboard = return_keyboard
     caldr = calendar.monthcalendar(callback_data.year, callback_data.month)
     for row in range(len(callback.message.reply_markup.inline_keyboard)):
@@ -26,6 +27,7 @@ def galochka_date_change(callback, callback_data, return_keyboard):
                                callback.from_user.id)
                 cursor.execute("UPDATE users_data SET date=%s WHERE user_id=%s", user_config)
                 con.commit()
+                cursor.close()
                 return_keyboard.inline_keyboard[row][data].text = "✅"
     return return_keyboard
 
@@ -57,15 +59,19 @@ def galochka_time_change(callback, callback_data, return_keyboard, time):
                       callback_data.hour,
                       callback_data.minute)
                 user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
+                cursor = con.cursor(buffered=True)
                 cursor.execute("UPDATE users_data SET time=%s WHERE user_id=%s", user_config)
                 con.commit()
+                cursor.close()
                 return_keyboard.inline_keyboard[row][data].text = "✅"
     return return_keyboard
 
 
 def galochka_time_db(return_keyboard, callback):
+    cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT time FROM users_data WHERE user_id={callback.from_user.id}")
     db_row = cursor.fetchall()
+    cursor.close()
     if db_row[0][0] is not None:
         time = db_row[0][0]
     else:
@@ -90,8 +96,10 @@ def galochka_time_db(return_keyboard, callback):
 
 
 def exist_datetime(user_id) -> bool:
+    cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {user_id}")
     row = cursor.fetchall()
+    cursor.close()
     try:
         if row[0][0] is not None and row[0][1] is not None:
             return True
@@ -100,149 +108,179 @@ def exist_datetime(user_id) -> bool:
     return False
 
 
-async def send_testing_message(callback=None, message=None, user_id=None, bot=None, go_to=False, run_date=None):
-    if callback is not None:
-        cursor = con.cursor()
-        cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {callback.from_user.id}")
-
-        print("testsing message")
-        if go_to:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, callback.from_user.id))
-            con.commit()
+async def send_testing_message_bot(user_id=None, bot=None, username=None, to_complete=False, run_date=None,
+                                   test_status=None):
+    cursor = con.cursor(buffered=True)
+    cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {user_id}")
+    test_status_db, run_date_db = cursor.fetchone()
+    print(test_status_db, run_date_db)
+    if to_complete:
+        cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, user_id))
+        con.commit()
+        return
+    if run_date_db is not None:
+        run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S")
+        if run_date < run_date_db:
             return
-        status, run_date_db = cursor.fetchone()
-        print(status, run_date_db)
-        if run_date_db is not None:
-            run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S.%f")
-            print(f"{run_date} < {run_date_db}")
-            if run_date < run_date_db:
-                return
-        next_status = 1
-        match status:
-            case 1:
-                await callback.message.answer(text="Ваше тестирование началось, успехов!\n\n"
-                                                   "Время на выполнение: 4 часа\n"
-                                                   "Задание будет на проверке когда вы отправите видео или ссылку "
-                                                   "и нажмете кнопку \"Отправить тестирование\" ✅\n\n"
-                                                   f"Задание: {config.task}\n\n"
-                                                   "Результат выслать в формате:\n"
-                                                   "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-                                                   "- ссылка на запущенного бота.",
-                                              reply_markup=keyboards.main_actions(message=callback,
-                                                                                  remove_sub=True))
-                next_status = 2
-            case 2:
-                await callback.message.answer(text="У Вас есть 10 минут, чтобы отправить результаты!")
-                next_status = 3
-            case 3:
-                await callback.message.answer(text="Ваше тестирование не выполнено"
-                                                   f"\nПо вопросам пересдачи пишите  ✍️"
-                                                   f"\n@strattonautomation")
-                next_status = 5
-        if next_status != 1:
+    if test_status is not None:
+        if test_status_db == test_status - 1:
             cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (next_status, callback.from_user.id))
+                           (test_status, user_id))
             con.commit()
-    elif message is not None:
-        cursor = con.cursor()
-        cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {message.from_user.id}")
-        if go_to:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, message.from_user.id))
+        elif test_status_db in [2, 3] and test_status == 4:
+            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
+                           (test_status, user_id))
             con.commit()
+        else:
             return
-        status, run_date_db = cursor.fetchone()
+    cursor.close()
+    match test_status:
+        case 2:
+            await bot.send_message(chat_id=int(user_id), text="Ваше тестирование началось, успехов!\n\n"
+                                                              "Время на выполнение: 4 часа\n"
+                                                              "Задание будет на проверке когда вы отправите видео ✅\n\n"
+                                                              f"Задание: {config.task}\n\n"
+                                                              "Результат выслать в формате:\n"
+                                                              "- видео работы кода до 30 секунд;\n"
+                                                              "- ссылка на запущенного бота.",
+                                   reply_markup=keyboards.main_actions(user_id=user_id, username=username))
+        case 3:
+            await bot.send_message(chat_id=int(user_id), text="У Вас есть 10 минут, чтобы отправить результаты!",
+                                   reply_markup=keyboards.main_actions(user_id=user_id,
+                                                                       username=username))
+        case 4:
+            await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
+                                                              f"\nПо вопросам пересдачи пишите  ✍️"
+                                                              f"\n@strattonautomation",
+                                   reply_markup=keyboards.main_actions(user_id=user_id,
+                                                                       username=username))
 
-        print(status, run_date_db)
-        if run_date_db is not None:
-            run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S.%f")
-            if run_date < run_date_db:
-                return
-        next_status = 1
-        match status:
-            case 1:
-                await message.answer(text="Ваше тестирование началось, успехов!\n\n"
-                                          "Время на выполнение: 4 часа\n"
-                                          "Задание будет на проверке когда вы отправите видео ✅\n\n"
-                                          f"Задание: {config.task}\n\n"
-                                          "Результат выслать в формате:\n"
-                                          "- видео работы кода до 30 секунд;\n"
-                                          "- ссылка на запущенного бота.",
-                                     reply_markup=keyboards.main_actions(message=message, remove_sub=True))
-                next_status = 2
-            case 2:
-                await message.answer(
-                    text="У Вас есть 10 минут, чтобы отправить результаты!")
-                next_status = 3
-            case 3:
-                await message.answer(text="Ваше тестирование не выполнено"
-                                          f"\nПо вопросам пересдачи пишите  ✍️"
-                                          f"\n@strattonautomation")
-                next_status = 5
-        if next_status != 1:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (next_status, message.from_user.id))
-            con.commit()
-    elif bot is not None and user_id is not None:
-        cursor = con.cursor()
-        cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {user_id}")
-        status, run_date_db = cursor.fetchone()
-        print(status, run_date_db)
-        if go_to:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, user_id))
-            con.commit()
+
+async def send_testing_message_callback(callback=None, to_complete=False, run_date=None, test_status=None):
+    cursor = con.cursor(buffered=True)
+    cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {callback.from_user.id}")
+    if to_complete:
+        cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, callback.from_user.id))
+        con.commit()
+        return
+    test_status_db, run_date_db = cursor.fetchone()
+    if run_date_db is not None:  # если не нулевой, то превратить в объект datetime
+        run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S")
+        if run_date < run_date_db:
             return
-
-        if run_date_db is not None:
-            run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S.%f")
-            if run_date < run_date_db:
-                return
-        next_status = 1
-        match status:
-            case 1:
-                await bot.send_message(chat_id=int(user_id), text="Ваше тестирование началось, успехов!\n\n"
-                                          "Время на выполнение: 4 часа\n"
-                                          "Задание будет на проверке когда вы отправите видео ✅\n\n"
-                                          f"Задание: {config.task}\n\n"
-                                          "Результат выслать в формате:\n"
-                                          "- видео работы кода до 30 секунд;\n"
-                                          "- ссылка на запущенного бота.",
-                                     reply_markup=keyboards.main_actions(message=message, remove_sub=True))
-                next_status = 2
-            case 2:
-                await bot.send_message(chat_id=int(user_id), text="У Вас есть 10 минут, чтобы отправить результаты!")
-                next_status = 3
-            case 3:
-                await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
-                                          f"\nПо вопросам пересдачи пишите  ✍️"
-                                          f"\n@strattonautomation")
-                next_status = 5
-        if next_status != 1:
+    if test_status is not None:
+        if test_status_db == test_status - 1:
             cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (next_status, user_id))
+                           (test_status, callback.from_user.id))
             con.commit()
+        elif test_status_db in [2, 3] and test_status == 4:
+            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
+                           (test_status, callback.from_user.id))
+            con.commit()
+        else:
+            return
+    cursor.close()
+    match test_status:
+        case 2:
+            await callback.message.answer(text="Ваше тестирование началось, успехов!\n\n"
+                                               "Время на выполнение: 4 часа\n"
+                                               "Задание будет на проверке когда вы отправите видео или ссылку "
+                                               "и нажмете кнопку \"Отправить тестирование\" ✅\n\n"
+                                               f"Задание: {config.task}\n\n"
+                                               "Результат выслать в формате:\n"
+                                               "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
+                                               "- ссылка на запущенного бота.",
+                                          reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
+                                                                              username=callback.from_user.username))
+        case 3:
+            await callback.message.answer(text="У Вас есть 10 минут, чтобы отправить результаты!",
+                                          reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
+                                                                              username=callback.from_user.username))
+        case 4:
+            await callback.message.answer(text="Ваше тестирование не выполнено"
+                                               f"\nПо вопросам пересдачи пишите  ✍️"
+                                               f"\n@strattonautomation",
+                                          reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
+                                                                              username=callback.from_user.username))
 
 
-def get_test_status(message):
-    # try:
-    cursor.execute(f"SELECT test_status, user_id FROM users_data WHERE user_id = {message.from_user.id}")
+async def send_testing_message_m(message=None, to_complete=False, run_date=None, test_status=None):
+    cursor = con.cursor(buffered=True)
+    cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {message.from_user.id}")
+    if to_complete:
+        cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
+                       (6, message.from_user.id))
+        con.commit()
+        logging.warning("test_message_not_1")
+        return
+    test_status_db, run_date_db = cursor.fetchone()
+    if run_date_db is not None:
+        run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S")
+        if run_date < run_date_db:
+            logging.warning("test_message_not_2")
+            return
+    if test_status is not None:
+        if test_status_db == test_status - 1:
+            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
+                           (test_status, message.from_user.id))
+            con.commit()
+        elif test_status_db in [2, 3] and test_status == 4:
+            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
+                           (test_status, message.from_user.id))
+            con.commit()
+        else:
+            logging.warning("test_message_not_3")
+            return
+    cursor.close()
+    match test_status:
+        case 2:
+            await message.answer(text="Ваше тестирование началось, успехов!\n\n"
+                                      "Время на выполнение: 4 часа\n"
+                                      "Задание будет на проверке когда вы отправите видео ✅\n\n"
+                                      f"Задание: {config.task}\n\n"
+                                      "Результат выслать в формате:\n"
+                                      "- видео работы кода до 30 секунд;\n"
+                                      "- ссылка на запущенного бота.",
+                                 reply_markup=keyboards.main_actions(user_id=message.from_user.id,
+                                                                     username=message.from_user.username))
+        case 3:
+            await message.answer(
+                text="У Вас есть 10 минут, чтобы отправить результаты!",
+                reply_markup=keyboards.main_actions(user_id=message.from_user.id,
+                                                    username=message.from_user.username))
+        case 4:
+            await message.answer(text="Ваше тестирование не выполнено"
+                                      f"\nПо вопросам пересдачи пишите  ✍️"
+                                      f"\n@strattonautomation",
+                                 reply_markup=keyboards.main_actions(user_id=message.from_user.id,
+                                                                     username=message.from_user.username))
+
+
+def get_test_status(user_id, username):
+    cursor = con.cursor(buffered=True)
+    cursor.execute(f"SELECT test_status, user_id FROM users_data WHERE user_id = {user_id}")
     row = cursor.fetchone()
+    cursor.close()
     print(row)
     if row is None:
-        add_user(message)
+        add_user(user_id, username)
         return row
     return row[0]
 
 
-def add_user(message):
-    cursor.execute(f"INSERT INTO users_data (user_id) VALUES (%s);", (message.from_user.id,))
+def add_user(user_id, username):
+    cursor = con.cursor(buffered=True)
+    cursor.execute(f"INSERT INTO users_data (user_id, username) VALUES (%s, %s);", (user_id, username))
     con.commit()
-    logging.info(f"Пользователь @{message.from_user.username} с id - {message.from_user.id} добавлен")
+    cursor.close()
+    logging.info(f"Пользователь @{username} с id - {user_id} добавлен")
 
 
 async def appoint_test(message, time):
     now = datetime.datetime.now()
     if time.hour <= now.hour and time.minute <= now.minute:
         return await message.answer(text="Указанное время уже прошло ⌛️. ")
+    cursor = con.cursor(buffered=True)
     cursor.execute(
         f"UPDATE users_data SET time='{time.strftime('%H:%M')}', test_status=1 WHERE user_id={message.from_user.id}")
     con.commit()
@@ -254,20 +292,21 @@ async def appoint_test(message, time):
                                              '%Y-%m-%d %H:%M')
 
     scheduler = AsyncIOScheduler(timezone=tzlocal.get_localzone_name())
-    started_at = datetime.datetime.now()
+    started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, message.from_user.id))
     con.commit()
-    scheduler.add_job(send_testing_message, trigger='date', run_date=date_to,
-                      kwargs={"message": message, "run_date": started_at})
-    scheduler.add_job(send_testing_message, trigger='date',
+    scheduler.add_job(send_testing_message_m, trigger='date', run_date=date_to,
+                      kwargs={"message": message, "run_date": started_at, "test_status": 2})
+    scheduler.add_job(send_testing_message_m, trigger='date',
                       run_date=str(date_to + config.exam_times["send_notification"]),
-                      kwargs={"message": message, "run_date": started_at})
-    scheduler.add_job(send_testing_message, trigger='date', run_date=str(date_to +
-                                                                         config.exam_times["duration"]),
-                      kwargs={"message": message, "run_date": started_at})
+                      kwargs={"message": message, "run_date": started_at, "test_status": 3})
+    scheduler.add_job(send_testing_message_m, trigger='date', run_date=str(date_to +
+                                                                           config.exam_times["duration"]),
+                      kwargs={"message": message, "run_date": started_at, "test_status": 4})
     scheduler.start()
     cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
     row_db = cursor.fetchall()
+    cursor.close()
     dates = row_db[0][0].split(' ')[0].split('-')
     date = f"{dates[2]}.{dates[1]}.{dates[0]}"
     await message.answer(text="Ура! Вы назначили себе задание! 🙂"
@@ -277,7 +316,6 @@ async def appoint_test(message, time):
                               "\nВремя на выполнение: 4 часа"
                               "\n"
                               "\nТеперь ожидайте задание 🙂",
-                         reply_markup=keyboards.main_actions(message=message,
-                                                             add_remove_exam=
-                                                             exist_datetime(
-                                                                 message.from_user.id)))
+                         reply_markup=keyboards.main_actions(user_id=message.from_user.id,
+                                                             username=message.from_user.username,
+                                                             add_remove_exam=exist_datetime(message.from_user.id)))

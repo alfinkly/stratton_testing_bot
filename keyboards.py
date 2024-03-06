@@ -14,21 +14,24 @@ from factories import *
 from methods import *
 
 # con = sqlite3.connect("database.db", timeout=30)
-cursor = con.cursor(buffered=True)
+# cursor = con.cursor(buffered=True)
 
 
-def main_actions(message, add_remove_exam=False, remove_sub=False) -> ReplyKeyboardMarkup:
-    cursor = con.cursor()
-    cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
+def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarkup:
+    cursor = con.cursor(buffered=True)
+    cursor.execute(f"select test_status from users_data where user_id={user_id}")
     status = cursor.fetchone()
     keyboard = [
         [KeyboardButton(text="Главная"), KeyboardButton(text="Подробная информация"), KeyboardButton(text="Контакты")],
         [KeyboardButton(text="Записаться на тестирование")]
     ]
-    if add_remove_exam and methods.get_test_status(message) == 1:
+    print("test_status", methods.get_test_status(user_id, username))
+    if add_remove_exam and methods.get_test_status(user_id, username) == 1:
         keyboard[1].append(KeyboardButton(text="Отменить тестирование"))
-    if remove_sub:
+    if methods.get_test_status(user_id, username) not in [1, None]:
         keyboard[1].pop(0)
+    if methods.get_test_status(user_id, username) in [2, 3]:
+        keyboard.append([KeyboardButton(text="Завершить тестирование")])
     if config.DEV_MODE:
         keyboard.append([KeyboardButton(text="/start"), KeyboardButton(text="/remake")])
     kb = ReplyKeyboardMarkup(
@@ -94,8 +97,10 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
                                  header[2]]
                             ] + calendar_buttons
         )
+        cursor = con.cursor(buffered=True)
         cursor.execute(f"SELECT date FROM users_data WHERE user_id = {message.from_user.id}")
         row = cursor.fetchall()
+        cursor.close()
         if row != [] and row[0][0] is not None:
             datetime_object = datetime.datetime.strptime(row[0][0], '%Y-%m-%d %H:%M:%S')
             kb = galochka_date_db(return_keyboard=kb, db_day=datetime_object.day,
@@ -109,8 +114,10 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
 def get_times(callback) -> InlineKeyboardMarkup:
     times = []
     start_time = 0
+    cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT date FROM users_data WHERE user_id={callback.from_user.id}")
     select = cursor.fetchall()[0][0]
+    cursor.close()
     db_day = datetime.datetime.strptime(select, '%Y-%m-%d %H:%M:%S')
     today = datetime.datetime.today()
     if today.year == db_day.year and today.month == db_day.month and today.day == db_day.day:
@@ -151,3 +158,4 @@ def keyboard_is_exam_complete(from_who, sender) -> InlineKeyboardMarkup:
                                                                                      sender=sender).pack())]
     ])
     return keyboard
+
