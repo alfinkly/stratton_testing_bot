@@ -144,11 +144,13 @@ async def send_testing_message_bot(user_id=None, bot=None, username=None, to_com
                                                               "- видео работы кода до 30 секунд;\n"
                                                               "- ссылка на запущенного бота.",
                                    reply_markup=keyboards.main_actions(user_id=user_id, username=username))
+            await bot.send_message(chat_id=int(user_id), text="Нажмите на кнопку когда приступите к тестированию",
+                                   reply_markup=keyboards.on_task)
         case 3:
             await bot.send_message(chat_id=int(user_id), text="У Вас есть 10 минут, чтобы отправить результаты!",
                                    reply_markup=keyboards.main_actions(user_id=user_id,
                                                                        username=username))
-        case 4:
+        case 5:
             await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
                                                               f"\nПо вопросам пересдачи пишите  ✍️"
                                                               f"\n@strattonautomation",
@@ -192,11 +194,13 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
                                                "- ссылка на запущенного бота.",
                                           reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
                                                                               username=callback.from_user.username))
+            await callback.message.answer(text="Нажмите на кнопку когда приступите к тестированию",
+                                          reply_markup=keyboards.on_task)
         case 3:
             await callback.message.answer(text="У Вас есть 10 минут, чтобы отправить результаты!",
                                           reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
                                                                               username=callback.from_user.username))
-        case 4:
+        case 5:
             await callback.message.answer(text="Ваше тестирование не выполнено"
                                                f"\nПо вопросам пересдачи пишите  ✍️"
                                                f"\n@strattonautomation",
@@ -224,7 +228,7 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
             cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
                            (test_status, message.from_user.id))
             con.commit()
-        elif test_status_db in [2, 3] and test_status == 4:
+        elif test_status_db in [2, 3] and test_status == 5:
             cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
                            (test_status, message.from_user.id))
             con.commit()
@@ -243,12 +247,14 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
                                       "- ссылка на запущенного бота.",
                                  reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                                      username=message.from_user.username))
+            await message.answer(text="Нажмите на кнопку когда приступите к тестированию",
+                                 reply_markup=keyboards.on_task)
         case 3:
             await message.answer(
                 text="У Вас есть 10 минут, чтобы отправить результаты!",
                 reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                     username=message.from_user.username))
-        case 4:
+        case 5:
             await message.answer(text="Ваше тестирование не выполнено"
                                       f"\nПо вопросам пересдачи пишите  ✍️"
                                       f"\n@strattonautomation",
@@ -302,7 +308,7 @@ async def appoint_test(message, time):
                       kwargs={"message": message, "run_date": started_at, "test_status": 3})
     scheduler.add_job(send_testing_message_m, trigger='date', run_date=str(date_to +
                                                                            config.exam_times["duration"]),
-                      kwargs={"message": message, "run_date": started_at, "test_status": 4})
+                      kwargs={"message": message, "run_date": started_at, "test_status": 5})
     scheduler.start()
     cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
     row_db = cursor.fetchall()
@@ -319,3 +325,47 @@ async def appoint_test(message, time):
                          reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                              username=message.from_user.username,
                                                              add_remove_exam=exist_datetime(message.from_user.id)))
+
+
+# Select request from db
+def sql_db_select(columns: list, filter=None, table="users_data"):
+    columns = ", ".join(columns)
+    cursor = con.cursor()
+    if filter is not None:
+        query = f"SELECT {columns} FROM {table} WHERE {filter[0]}={filter[filter[0]]}"
+        cursor.execute(query)
+        row = cursor.fetchone()
+    else:
+        query = f"SELECT {columns} FROM {table}"
+        cursor.execute(query)
+        row = cursor.fetchall()
+    cursor.close()
+    logging.info(query)
+    return row
+
+
+# {"tag": "home_text"}
+def sql_db_update(columns: dict, filter: dict, table="users_date"):
+    set_query = ""
+
+    for col in columns:
+        set_query += col + "=" + str(columns[col]) + ", "
+    else:
+        set_query = set_query.removesuffix(", ")
+
+    cursor = con.cursor()
+    query = f"UPDATE {table} SET {set_query} WHERE {filter}={filter[filter[0]]}"
+    cursor.execute(query)
+    con.commit()
+    cursor.close()
+
+    logging.info(query)
+
+
+def exist_user(user_id):
+    cursor = con.cursor()
+    cursor.execute(f"SELECT user_id FROM users_data WHERE user_id={user_id}")
+    if cursor.fetchone()[0] is not None:
+        return True
+    else:
+        return False

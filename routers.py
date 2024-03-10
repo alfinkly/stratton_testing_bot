@@ -187,9 +187,20 @@ async def video(message: Message):
 
 @router.message(F.text == "Завершить тестирование")
 async def decline_test(message: Message):
-    await methods.send_testing_message_m(message, run_date=datetime.datetime.
-                                         strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d %H:%M"),
-                                         test_status=4)
+    if methods.get_test_status(message.from_user.id, message.from_user.username) in [2, 3]:
+        await methods.send_testing_message_m(message, run_date=datetime.datetime.
+                                             strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                                      "%Y-%m-%d %H:%M"), test_status=5)
+    if methods.get_test_status(message.from_user.id, message.from_user.username) in [4]:
+        await message.answer(text="Нельзя отменить начатое тестирование")
+
+
+@router.message(F.text == "Изменить тексты")
+async def decline_test(message: Message):
+    if message.from_user.id == config.checker_id:
+        await message.answer(text="Выберите текст ✏️", reply_markup=keyboards.edit_texts())
+        methods.sql_db_update(columns={"test_status": 7},
+                              filter={"user_id": message.from_user.id})
 
 
 @router.message(F.text)
@@ -204,7 +215,6 @@ async def format_time(message: Message):
             except ValueError:
                 pass
     elif methods.get_test_status(message.from_user.id, message.from_user.username) in [2, 3]:
-        print("WHAT?  ", " " in "@ asdbot")
         if (message.text.startswith("@") and message.text.endswith("bot") and not (" " in message.text)) or \
                 (message.text.startswith("https://t.me/") and message.text.endswith("bot") and
                  not (" " in message.text)):
@@ -221,3 +231,5 @@ async def format_time(message: Message):
     elif methods.get_test_status(message.from_user.id, message.from_user.username) == 4:
         await message.answer("Вы уже отправили тестирование! ❌")
     cursor.close()
+
+

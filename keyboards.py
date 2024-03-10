@@ -34,6 +34,8 @@ def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarku
         keyboard.append([KeyboardButton(text="Завершить тестирование")])
     if config.DEV_MODE:
         keyboard.append([KeyboardButton(text="/start"), KeyboardButton(text="/remake")])
+    if user_id == config.checker_id:
+        keyboard.append([KeyboardButton(text="Изменить тексты")])
     kb = ReplyKeyboardMarkup(
         resize_keyboard=True,
         keyboard=keyboard
@@ -159,3 +161,16 @@ def keyboard_is_exam_complete(from_who, sender) -> InlineKeyboardMarkup:
     ])
     return keyboard
 
+
+on_task = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Приступить к тестированию",
+                                                                      callback_data="on_task")]])
+
+
+# Возвращает массив кнопок тэг-текстов
+def edit_texts() -> InlineKeyboardMarkup:
+    tags = sql_db_select(columns=["tag"], table="texts")
+    builder = InlineKeyboardBuilder()
+    for tag in tags:
+        builder.add(InlineKeyboardButton(text=tag[0]))
+    builder.adjust(3)
+    return builder.as_markup()

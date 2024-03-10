@@ -43,11 +43,15 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
         if callback_data.is_complete == 0:
             await callback.message.answer(text=f"Вы отклонили тестирование ❌")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text="Тестирование отклонен ❌")
+            await bot.send_message(callback_data.sender, text="Тестирование отклонен ❌",
+                                   reply_markup=keyboards.main_actions(callback.from_user.id,
+                                                                       callback.from_user.username))
         elif callback_data.is_complete == 1:
             await callback.message.answer(text=f"Вы приняли тестирование ✅")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text="Тестирование принято ✅")
+            await bot.send_message(callback_data.sender, text="Тестирование принято ✅",
+                                   reply_markup=keyboards.main_actions(callback.from_user.id,
+                                                                       callback.from_user.username))
             await send_testing_message_callback(callback, to_complete=True)
     await callback.answer()
 
@@ -99,7 +103,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                   kwargs={"callback": callback, "run_date": started_at, "test_status": 3})
                 scheduler.add_job(send_testing_message_callback, trigger='date',
                                   run_date=str(date_to + config.exam_times["duration"]),
-                                  kwargs={"callback": callback, "run_date": started_at, "test_status": 4})
+                                  kwargs={"callback": callback, "run_date": started_at, "test_status": 5})
                 scheduler.start()
 
                 return_keyboard.inline_keyboard[row][data].text = "✅"
@@ -155,8 +159,21 @@ async def reactive_jobs():
         scheduler.add_job(send_testing_message_bot, trigger='date',
                           run_date=str(date_to + config.exam_times["duration"]),
                           kwargs={"bot": bot, "user_id": user[0], "run_date": started_at, "username": user[3],
-                                  "test_status": 4})
+                                  "test_status": 5})
         scheduler.start()
+
+
+@dp.callback_query(F.data == "on_task")
+async def month(callback: types.CallbackQuery):
+    await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
+    await bot.send_message(chat_id=config.checker_id, text=f"@{callback.from_user.username} приступил к тестированию")
+    await callback.message.edit_text(text="Вы начали тестирование ✅")
+    today = datetime.datetime.now()
+    cursor = con.cursor()
+    cursor.execute("UPDATE users_data SET on_task=%s WHERE user_id=%s", (today, callback.from_user.id))
+    con.commit()
+    cursor.close()
+    await callback.answer()
 
 
 async def start_bot():

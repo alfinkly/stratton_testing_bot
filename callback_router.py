@@ -30,7 +30,6 @@ async def send_random_value(callback: types.CallbackQuery, callback_data: DateCa
     try:
         await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
         today = datetime.datetime.today().strftime("%d.%m.%Y")
-        print(today)
         await callback.message.edit_text(text=f"Дата выполнения задания: {today}")
     except Exception:
         print("Клавиатура не изменена")
@@ -65,3 +64,5 @@ async def month(callback: types.CallbackQuery):
         reply_markup=keyboards.get_calendar(today.year, today.month, callback)
     )
     await callback.answer()
+
+
