@@ -33,8 +33,9 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
         elif callback_data.is_complete == 1:
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
             await send_testing_message_callback(callback, to_complete=True)
-            await callback.message.send_copy(config.checker_id, reply_markup=keyboards.
-                                             keyboard_is_exam_complete(from_who=1, sender=callback.from_user.id))
+            for c_id in config.checker_ids:
+                await callback.message.send_copy(c_id, reply_markup=keyboards.
+                                                 keyboard_is_exam_complete(from_who=1, sender=callback.from_user.id))
             cursor = con.cursor(buffered=True)
             cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (4, callback.from_user.id))
             con.commit()
@@ -129,10 +130,12 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                                                       username=callback.from_user.username,
                                                                       add_remove_exam=
                                                                       routers.exist_datetime(callback.from_user.id)))
-    await bot.send_message(chat_id=config.checker_id, text=f"@{callback.from_user.username} записался на тестирование:"
-                                                           f"\n"
-                                                           f"\nДата: {date}"
-                                                           f"\nВремя: {row_db[0][1]}")
+    for c_id in config.checker_ids:
+        await bot.send_message(chat_id=c_id, text=f"@{callback.from_user.username} "
+                                                  f"записался на тестирование:"
+                                                  f"\n"
+                                                  f"\nДата: {date}"
+                                                  f"\nВремя: {row_db[0][1]}")
 
 
 async def reactive_jobs():
@@ -146,7 +149,8 @@ async def reactive_jobs():
         date_to = datetime.datetime.strptime(user[1].split(" ")[0] + " " + user[2],
                                              '%Y-%m-%d %H:%M')
         scheduler = AsyncIOScheduler(timezone=tzlocal.get_localzone_name())
-        started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                                "%Y-%m-%d %H:%M:%S")
         cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, user[0]))
         con.commit()
         scheduler.add_job(send_testing_message_bot, trigger='date', run_date=date_to,
@@ -166,7 +170,8 @@ async def reactive_jobs():
 @dp.callback_query(F.data == "on_task")
 async def month(callback: types.CallbackQuery):
     await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-    await bot.send_message(chat_id=config.checker_id, text=f"@{callback.from_user.username} приступил к тестированию")
+    for c_id in config.checker_ids:
+        await bot.send_message(chat_id=c_id, text=f"@{callback.from_user.username} приступил к тестированию")
     await callback.message.edit_text(text="Вы начали тестирование ✅")
     today = datetime.datetime.now()
     cursor = con.cursor()

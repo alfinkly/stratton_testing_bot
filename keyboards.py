@@ -34,8 +34,8 @@ def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarku
         keyboard.append([KeyboardButton(text="Завершить тестирование")])
     if config.DEV_MODE:
         keyboard.append([KeyboardButton(text="/start"), KeyboardButton(text="/remake")])
-    if user_id == config.checker_id:
-        keyboard.append([KeyboardButton(text="Изменить тексты")])
+    # if user_id == config.checker_id:
+    #     keyboard.append([KeyboardButton(text="Изменить тексты")])
     kb = ReplyKeyboardMarkup(
         resize_keyboard=True,
         keyboard=keyboard

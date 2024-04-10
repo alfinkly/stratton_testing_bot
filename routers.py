@@ -195,12 +195,12 @@ async def decline_test(message: Message):
         await message.answer(text="Нельзя отменить начатое тестирование")
 
 
-@router.message(F.text == "Изменить тексты")
-async def decline_test(message: Message):
-    if message.from_user.id == config.checker_id:
-        await message.answer(text="Выберите текст ✏️", reply_markup=keyboards.edit_texts())
-        methods.sql_db_update(columns={"test_status": 7},
-                              filter={"user_id": message.from_user.id})
+# @router.message(F.text == "Изменить тексты")
+# async def decline_test(message: Message):
+#     if message.from_user.id == config.checker_id:
+#         await message.answer(text="Выберите текст ✏️", reply_markup=keyboards.edit_texts())
+#         methods.sql_db_update(columns={"test_status": 7},
+#                               filter={"user_id": message.from_user.id})
 
 
 @router.message(F.text)

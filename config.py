@@ -1,13 +1,13 @@
 import datetime
 import mysql.connector
 
-TOKEN = "6996615436:AAGTIPQZk-ASHPX6K7ocN8La2vHq3E7EUA8"
+TOKEN = "6788352837:AAHKakh-Kun4k-gzrFvheQrx0zKKRxrPnis"
 
 months = {1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель", 5: "Май", 6: "Июнь", 7: "Июль",
           8: "Август", 9: "Сентябрь", 10: "Октябрь", 11: "Ноябрь", 12: "Декабрь"}
 
 # checker_id = 992654384   # Deaspecty
-checker_id = 564023521
+checker_ids = [564023521, 992654384]
 
 exam_times = {
     "duration": datetime.timedelta(hours=4),
@@ -48,9 +48,9 @@ con = mysql.connector.connect(
 )
 
 if DEV_MODE:
-    token = "6996615436:AAGTIPQZk-ASHPX6K7ocN8La2vHq3E7EUA8"
-    exam_times = {"duration": datetime.timedelta(minutes=4), "send_notification": datetime.timedelta(seconds=15)}
-    checker_id = 992654384
+    TOKEN = "6788352837:AAHKakh-Kun4k-gzrFvheQrx0zKKRxrPnis"
+    exam_times = {"duration": datetime.timedelta(minutes=20), "send_notification": datetime.timedelta(seconds=15)}
+    checker_ids = [992654384]
     con = mysql.connector.connect(
         host="localhost",
         user="root",
