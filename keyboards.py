@@ -1,4 +1,6 @@
 import sqlite3
+
+import pytz
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 import calendar
@@ -47,7 +49,7 @@ def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarku
 def get_calendar(year, month, message) -> InlineKeyboardMarkup:
     try:
         caldr = calendar.monthcalendar(year, month)
-        today = datetime.datetime.now(tz=tz.gettz("Asia / Almaty"))
+        today = datetime.datetime.now(tz=pytz.FixedOffset(300))
         # today = datetime.datetime(day=30, month=3, year=2024)
         open_days = today + datetime.timedelta(days=7)
         header = [InlineKeyboardButton(text="❌", callback_data="nothing"),
@@ -122,7 +124,7 @@ def get_times(callback) -> InlineKeyboardMarkup:
     select = cursor.fetchall()[0][0]
     cursor.close()
     db_day = datetime.datetime.strptime(select, '%Y-%m-%d %H:%M:%S')
-    today = datetime.datetime.now(tz=tz.gettz("Asia / Almaty"))
+    today = datetime.datetime.now(tz=pytz.FixedOffset(300))
     if today.year == db_day.year and today.month == db_day.month and today.day == db_day.day:
         start_time = (today + datetime.timedelta(hours=1)).hour
     for hour in range(start_time, 24):

@@ -1,7 +1,9 @@
 import datetime
 import logging
 import coloredlogs
-from dateutil import tz 
+import pytz
+import tzlocal
+from dateutil import tz
 from aiogram import Router, F, types
 import config
 import keyboards
@@ -29,7 +31,7 @@ async def send_random_value(callback: types.CallbackQuery, callback_data: DateCa
                                            return_keyboard=return_keyboard)
     try:
         await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-        today = datetime.datetime.now(tz=tz.gettz("Asia / Almaty")).strftime("%d.%m.%Y")
+        today = datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%d.%m.%Y")
         await callback.message.edit_text(text=f"Дата выполнения задания: {today}")
     except Exception:
         print("Клавиатура не изменена")
@@ -58,7 +60,7 @@ async def month(callback: types.CallbackQuery, callback_data: DateCallbackFactor
 async def month(callback: types.CallbackQuery):
     await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
     await callback.message.edit_text(text="Вы вернулись назад  ◀️")
-    today = datetime.datetime.now(tz=tz.gettz("Asia / Almaty"))
+    today = datetime.datetime.now(tz=pytz.FixedOffset(300))
     await callback.message.answer(
         f"Выберите удобную дату  📅",
         reply_markup=keyboards.get_calendar(today.year, today.month, callback)
