@@ -2,6 +2,7 @@ import calendar
 import datetime
 import logging
 import coloredlogs
+from dateutil import tz 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 import keyboards
@@ -287,7 +288,7 @@ def add_user(user_id, username):
 
 
 async def appoint_test(message, time):
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=tz.gettz("Asia / Almaty"))
     if time.hour <= now.hour and time.minute <= now.minute:
         return await message.answer(text="Указанное время уже прошло ⌛️. ")
     cursor = con.cursor(buffered=True)
@@ -302,7 +303,7 @@ async def appoint_test(message, time):
                                              '%Y-%m-%d %H:%M')
 
     scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
-    started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+    started_at = datetime.datetime.strptime(datetime.datetime.now(tz=tz.gettz("Asia / Almaty")).strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, message.from_user.id))
     con.commit()
     scheduler.add_job(send_testing_message_m, trigger='date', run_date=date_to,

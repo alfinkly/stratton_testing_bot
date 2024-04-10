@@ -48,7 +48,7 @@ con = mysql.connector.connect(
 )
 
 if DEV_MODE:
-    TOKEN = "6788352837:AAHKakh-Kun4k-gzrFvheQrx0zKKRxrPnis"
+    TOKEN = "6788352837:AAEDFVjpaoi-_h5H3gRwXBd3-SPKM-azDs0"
     exam_times = {"duration": datetime.timedelta(minutes=20), "send_notification": datetime.timedelta(seconds=15)}
     checker_ids = [992654384]
     con = mysql.connector.connect(

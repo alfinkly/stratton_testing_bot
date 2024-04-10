@@ -1,8 +1,10 @@
 import asyncio
 import datetime
 
+from dateutil import tz  as tz
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, Message
 import logging
 import coloredlogs
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -81,7 +83,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                     print("No datetime in database")
                     return callback.message.answer(text="Произошла ошибка")
                 if config.DEV_MODE:
-                    date_now = datetime.datetime.now()
+                    date_now = datetime.datetime.now(tz=tz.gettz("Asia / Almaty"))
                     date_to = datetime.datetime(year=date_now.year, month=date_now.month, day=date_now.day,
                                                 hour=date_now.hour, minute=date_now.minute)
                     date_to += datetime.timedelta(minutes=1)
@@ -91,7 +93,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                    (date_to, f"{timed}"))
                     con.commit()
                 scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
-                started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d "
+                started_at = datetime.datetime.strptime(datetime.datetime.now(tz=tz.gettz("Asia / Almaty")).strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d "
                                                                                                             "%H:%M")
                 cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s",
                                (started_at, callback.from_user.id))
@@ -148,7 +150,7 @@ async def reactive_jobs():
         date_to = datetime.datetime.strptime(user[1].split(" ")[0] + " " + user[2],
                                              '%Y-%m-%d %H:%M')
         scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
-        started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        started_at = datetime.datetime.strptime(datetime.datetime.now(tz=tz.gettz("Asia / Almaty")).strftime("%Y-%m-%d %H:%M:%S"),
                                                 "%Y-%m-%d %H:%M:%S")
         cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, user[0]))
         con.commit()
@@ -172,7 +174,7 @@ async def month(callback: types.CallbackQuery):
     for c_id in config.checker_ids:
         await bot.send_message(chat_id=c_id, text=f"@{callback.from_user.username} приступил к тестированию")
     await callback.message.edit_text(text="Вы начали тестирование ✅")
-    today = datetime.datetime.now()
+    today = datetime.datetime.now(tz=tz.gettz("Asia / Almaty"))
     cursor = con.cursor()
     cursor.execute("UPDATE users_data SET on_task=%s WHERE user_id=%s", (today, callback.from_user.id))
     con.commit()
