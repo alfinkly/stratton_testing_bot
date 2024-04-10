@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 
-import tzlocal
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import InlineKeyboardMarkup
 import logging
@@ -91,7 +90,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                    f" where user_id={callback.from_user.id}",
                                    (date_to, f"{timed}"))
                     con.commit()
-                scheduler = AsyncIOScheduler(timezone=tzlocal.get_localzone_name())
+                scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
                 started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d "
                                                                                                             "%H:%M")
                 cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s",
@@ -148,7 +147,7 @@ async def reactive_jobs():
         print(user)
         date_to = datetime.datetime.strptime(user[1].split(" ")[0] + " " + user[2],
                                              '%Y-%m-%d %H:%M')
-        scheduler = AsyncIOScheduler(timezone=tzlocal.get_localzone_name())
+        scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
         started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                                 "%Y-%m-%d %H:%M:%S")
         cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, user[0]))

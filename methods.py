@@ -2,7 +2,6 @@ import calendar
 import datetime
 import logging
 import coloredlogs
-import tzlocal
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 import keyboards
@@ -302,7 +301,7 @@ async def appoint_test(message, time):
         date_to = datetime.datetime.strptime(row_db[0].split(" ")[0] + " " + time.strftime('%H:%M'),
                                              '%Y-%m-%d %H:%M')
 
-    scheduler = AsyncIOScheduler(timezone=tzlocal.get_localzone_name())
+    scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
     started_at = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, message.from_user.id))
     con.commit()

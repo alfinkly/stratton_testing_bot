@@ -1,12 +1,9 @@
 import datetime
 import logging
 import coloredlogs
-import pytz
-import tzlocal
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import methods
 from methods import exist_datetime
 import config

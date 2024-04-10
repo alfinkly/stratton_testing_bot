@@ -1,7 +1,6 @@
 import datetime
 import logging
 import coloredlogs
-import tzlocal
 from aiogram import Router, F, types
 import config
 import keyboards
