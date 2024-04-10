@@ -1,7 +1,7 @@
 import datetime
 import mysql.connector
 
-TOKEN = "6788352837:AAHKakh-Kun4k-gzrFvheQrx0zKKRxrPnis"
+TOKEN = "6788352837:AAEDFVjpaoi-_h5H3gRwXBd3-SPKM-azDs0"
 
 months = {1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель", 5: "Май", 6: "Июнь", 7: "Июль",
           8: "Август", 9: "Сентябрь", 10: "Октябрь", 11: "Ноябрь", 12: "Декабрь"}
@@ -14,7 +14,7 @@ exam_times = {
     "send_notification": datetime.timedelta(hours=3, minutes=50)
 }
 
-DEV_MODE = True
+DEV_MODE = False
 
 task = "\nЗадания по Python." + \
        "\nЗадание 1." + \
