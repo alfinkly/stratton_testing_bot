@@ -134,31 +134,30 @@ async def send_testing_message_bot(user_id=None, bot=None, username=None, to_com
         else:
             return
     cursor.close()
-    match test_status:
-        case 2:
-            await bot.send_message(chat_id=int(user_id), text="Ваше тестирование началось, успехов!\n\n"
-                                                              "Время на выполнение: 4 часа\n"
-                                                              "Задание будет на проверке когда вы отправите видео или ссылку "
-                                                              "и нажмете кнопку \"Отправить тестирование\" ✅\n"
-                                                              "Тестирование можно окончить(то есть не выполнить) по кнопке "
-                                                              "'Закончить тестирование'\n\n"
-                                                              f"Задание: {config.task}\n\n"
-                                                              "Результат выслать в формате:\n"
-                                                              "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-                                                              "- ссылка на запущенного бота.",
-                                   reply_markup=keyboards.main_actions(user_id=user_id, username=username))
-            await bot.send_message(chat_id=int(user_id), text="Нажмите на кнопку когда приступите к тестированию",
-                                   reply_markup=keyboards.on_task)
-        case 3:
-            await bot.send_message(chat_id=int(user_id), text="У Вас есть 10 минут, чтобы отправить результаты!",
-                                   reply_markup=keyboards.main_actions(user_id=user_id,
-                                                                       username=username))
-        case 5:
-            await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
-                                                              f"\nПо вопросам пересдачи пишите  ✍️"
-                                                              f"\n@strattonautomation",
-                                   reply_markup=keyboards.main_actions(user_id=user_id,
-                                                                       username=username))
+    if test_status == 2:
+        await bot.send_message(chat_id=int(user_id), text="Ваше тестирование началось, успехов!\n\n"
+                                                          "Время на выполнение: 4 часа\n"
+                                                          "Задание будет на проверке когда вы отправите видео или ссылку "
+                                                          "и нажмете кнопку \"Отправить тестирование\" ✅\n"
+                                                          "Тестирование можно окончить(то есть не выполнить) по кнопке "
+                                                          "'Закончить тестирование'\n\n"
+                                                          f"Задание: {config.task}\n\n"
+                                                          "Результат выслать в формате:\n"
+                                                          "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
+                                                          "- ссылка на запущенного бота.",
+                               reply_markup=keyboards.main_actions(user_id=user_id, username=username))
+        await bot.send_message(chat_id=int(user_id), text="Нажмите на кнопку когда приступите к тестированию",
+                               reply_markup=keyboards.on_task)
+    if test_status == 3:
+        await bot.send_message(chat_id=int(user_id), text="У Вас есть 10 минут, чтобы отправить результаты!",
+                               reply_markup=keyboards.main_actions(user_id=user_id,
+                                                                   username=username))
+    if test_status == 5:
+        await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
+                                                          f"\nПо вопросам пересдачи пишите  ✍️"
+                                                          f"\n@strattonautomation",
+                               reply_markup=keyboards.main_actions(user_id=user_id,
+                                                                   username=username))
 
 
 async def send_testing_message_callback(callback=None, to_complete=False, run_date=None, test_status=None):
@@ -185,32 +184,31 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
         else:
             return
     cursor.close()
-    match test_status:
-        case 2:
-            await callback.message.answer(text="Ваше тестирование началось, успехов!\n\n"
-                                               "Время на выполнение: 4 часа\n"
-                                               "Задание будет на проверке когда вы отправите видео или ссылку "
-                                               "и нажмете кнопку \"Отправить тестирование\" ✅\n"
-                                               "Тестирование можно окончить(то есть не выполнить) по кнопке "
-                                               "'Закончить тестирование'\n\n"
-                                               f"Задание: {config.task}\n\n"
-                                               "Результат выслать в формате:\n"
-                                               "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-                                               "- ссылка на запущенного бота.",
-                                          reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
-                                                                              username=callback.from_user.username))
-            await callback.message.answer(text="Нажмите на кнопку когда приступите к тестированию",
-                                          reply_markup=keyboards.on_task)
-        case 3:
-            await callback.message.answer(text="У Вас есть 10 минут, чтобы отправить результаты!",
-                                          reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
-                                                                              username=callback.from_user.username))
-        case 5:
-            await callback.message.answer(text="Ваше тестирование не выполнено"
-                                               f"\nПо вопросам пересдачи пишите  ✍️"
-                                               f"\n@strattonautomation",
-                                          reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
-                                                                              username=callback.from_user.username))
+    if test_status == 2:
+        await callback.message.answer(text="Ваше тестирование началось, успехов!\n\n"
+                                           "Время на выполнение: 4 часа\n"
+                                           "Задание будет на проверке когда вы отправите видео или ссылку "
+                                           "и нажмете кнопку \"Отправить тестирование\" ✅\n"
+                                           "Тестирование можно окончить(то есть не выполнить) по кнопке "
+                                           "'Закончить тестирование'\n\n"
+                                           f"Задание: {config.task}\n\n"
+                                           "Результат выслать в формате:\n"
+                                           "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
+                                           "- ссылка на запущенного бота.",
+                                      reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
+                                                                          username=callback.from_user.username))
+        await callback.message.answer(text="Нажмите на кнопку когда приступите к тестированию",
+                                      reply_markup=keyboards.on_task)
+    if test_status == 3:
+        await callback.message.answer(text="У Вас есть 10 минут, чтобы отправить результаты!",
+                                      reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
+                                                                          username=callback.from_user.username))
+    if test_status == 5:
+        await callback.message.answer(text="Ваше тестирование не выполнено"
+                                           f"\nПо вопросам пересдачи пишите  ✍️"
+                                           f"\n@strattonautomation",
+                                      reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
+                                                                          username=callback.from_user.username))
 
 
 async def send_testing_message_m(message=None, to_complete=False, run_date=None, test_status=None):
@@ -241,33 +239,32 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
             logging.warning("test_message_not_3")
             return
     cursor.close()
-    match test_status:
-        case 2:
-            await message.answer(text="Ваше тестирование началось, успехов!\n\n"
-                                      "Время на выполнение: 4 часа\n"
-                                      "Задание будет на проверке когда вы отправите видео или ссылку "
-                                      "и нажмете кнопку \"Отправить тестирование\" ✅\n"
-                                      "Тестирование можно окончить(то есть не выполнить) по кнопке "
-                                      "'Закончить тестирование'\n\n"
-                                      f"Задание: {config.task}\n\n"
-                                      "Результат выслать в формате:\n"
-                                      "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-                                      "- ссылка на запущенного бота.",
-                                 reply_markup=keyboards.main_actions(user_id=message.from_user.id,
-                                                                     username=message.from_user.username))
-            await message.answer(text="Нажмите на кнопку когда приступите к тестированию",
-                                 reply_markup=keyboards.on_task)
-        case 3:
-            await message.answer(
-                text="У Вас есть 10 минут, чтобы отправить результаты!",
-                reply_markup=keyboards.main_actions(user_id=message.from_user.id,
-                                                    username=message.from_user.username))
-        case 5:
-            await message.answer(text="Ваше тестирование не выполнено"
-                                      f"\nПо вопросам пересдачи пишите  ✍️"
-                                      f"\n@strattonautomation",
-                                 reply_markup=keyboards.main_actions(user_id=message.from_user.id,
-                                                                     username=message.from_user.username))
+    if test_status == 2:
+        await message.answer(text="Ваше тестирование началось, успехов!\n\n"
+                                  "Время на выполнение: 4 часа\n"
+                                  "Задание будет на проверке когда вы отправите видео или ссылку "
+                                  "и нажмете кнопку \"Отправить тестирование\" ✅\n"
+                                  "Тестирование можно окончить(то есть не выполнить) по кнопке "
+                                  "'Закончить тестирование'\n\n"
+                                  f"Задание: {config.task}\n\n"
+                                  "Результат выслать в формате:\n"
+                                  "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
+                                  "- ссылка на запущенного бота.",
+                             reply_markup=keyboards.main_actions(user_id=message.from_user.id,
+                                                                 username=message.from_user.username))
+        await message.answer(text="Нажмите на кнопку когда приступите к тестированию",
+                             reply_markup=keyboards.on_task)
+    if test_status == 3:
+        await message.answer(
+            text="У Вас есть 10 минут, чтобы отправить результаты!",
+            reply_markup=keyboards.main_actions(user_id=message.from_user.id,
+                                                username=message.from_user.username))
+    if test_status == 5:
+        await message.answer(text="Ваше тестирование не выполнено"
+                                  f"\nПо вопросам пересдачи пишите  ✍️"
+                                  f"\n@strattonautomation",
+                             reply_markup=keyboards.main_actions(user_id=message.from_user.id,
+                                                                 username=message.from_user.username))
 
 
 def get_test_status(user_id, username):
