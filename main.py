@@ -81,7 +81,6 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                     date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1],
                                                          '%Y-%m-%d %H:%M')
                 else:
-                    print("No datetime in database")
                     return callback.message.answer(text="Произошла ошибка")
                 if config.DEV_MODE:
                     date_now = datetime.datetime.now(tz=pytz.FixedOffset(300))
@@ -147,7 +146,6 @@ async def reactive_jobs():
                    " and test_status = 1")
     users = cursor.fetchall()
     for user in users:
-        print(user)
         date_to = datetime.datetime.strptime(user[1].split(" ")[0] + " " + user[2],
                                              '%Y-%m-%d %H:%M')
         scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
@@ -192,4 +190,3 @@ async def start_bot():
 
 if __name__ == "__main__":
     asyncio.run(start_bot())
-    print("Started!")

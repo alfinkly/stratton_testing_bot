@@ -56,9 +56,6 @@ def galochka_time_change(callback, callback_data, return_keyboard, time):
             if callback.message.reply_markup.inline_keyboard[row][data].text == time:
                 # if callback.message.reply_markup.inline_keyboard[row][data].text ==\
                 #     f"{callback_data.hour}:{callback_data.minute}0":
-                print("Время изменено на", callback.message.reply_markup.inline_keyboard[row][data].text,
-                      callback_data.hour,
-                      callback_data.minute)
                 user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
                 cursor = con.cursor(buffered=True)
                 cursor.execute("UPDATE users_data SET time=%s WHERE user_id=%s", user_config)
@@ -77,7 +74,6 @@ def galochka_time_db(return_keyboard, callback):
         time = db_row[0][0]
     else:
         return return_keyboard
-    print("time from db equals - " + time)
     for row in range(len(return_keyboard.inline_keyboard)):
         for data in range(len(return_keyboard.inline_keyboard[row])):
             if return_keyboard.inline_keyboard[row][data].text == "✅":
@@ -85,10 +81,6 @@ def galochka_time_db(return_keyboard, callback):
                        f"{return_keyboard.inline_keyboard[row][data].callback_data.split(':')[-1]}0"
                 return_keyboard.inline_keyboard[row][data].text = time
             if return_keyboard.inline_keyboard[row][data].text == time:
-                print("Edited", return_keyboard.inline_keyboard[row][data].text,
-                      # callback_data.hour,
-                      # callback_data.minute
-                      )
                 # user_config = (f"{callback_data.hour}:{callback_data.minute}0", callback.from_user.id)
                 # cursor.execute("UPDATE users_data SET time=%s WHERE user_id=%s", user_config)
                 # con.commit()
@@ -114,7 +106,6 @@ async def send_testing_message_bot(user_id=None, bot=None, username=None, to_com
     cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {user_id}")
     test_status_db, run_date_db = cursor.fetchone()
-    print(test_status_db, run_date_db)
     if to_complete:
         cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, user_id))
         con.commit()
@@ -156,7 +147,7 @@ async def send_testing_message_bot(user_id=None, bot=None, username=None, to_com
     if test_status == 5:
         await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
                                                           f"\nПо вопросам пересдачи пишите  ✍️"
-                                                          f"\n@strattonautomation",
+                                                          f"\n@deaspecty",
                                reply_markup=keyboards.main_actions(user_id=user_id,
                                                                    username=username))
 
@@ -207,7 +198,7 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
     if test_status == 5:
         await callback.message.answer(text="Ваше тестирование не выполнено"
                                            f"\nПо вопросам пересдачи пишите  ✍️"
-                                           f"\n@strattonautomation",
+                                           f"\n@deaspecty",
                                       reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
                                                                           username=callback.from_user.username))
 
@@ -263,7 +254,7 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
     if test_status == 5:
         await message.answer(text="Ваше тестирование не выполнено"
                                   f"\nПо вопросам пересдачи пишите  ✍️"
-                                  f"\n@strattonautomation",
+                                  f"\n@deaspecty",
                              reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                                  username=message.from_user.username))
 
@@ -273,7 +264,6 @@ def get_test_status(user_id, username):
     cursor.execute(f"SELECT test_status, user_id FROM users_data WHERE user_id = {user_id}")
     row = cursor.fetchone()
     cursor.close()
-    print(row)
     if row is None:
         add_user(user_id, username)
         return row
@@ -298,7 +288,6 @@ async def appoint_test(message, time):
     con.commit()
     cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {message.from_user.id}")
     row_db = cursor.fetchone()
-    print(row_db)
     if row_db != [] and row_db[0][0] is not None and row_db[0][1] is not None:
         date_to = datetime.datetime.strptime(row_db[0].split(" ")[0] + " " + time.strftime('%H:%M'),
                                              '%Y-%m-%d %H:%M')

@@ -28,7 +28,6 @@ def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarku
         [KeyboardButton(text="Главная"), KeyboardButton(text="Подробная информация"), KeyboardButton(text="Контакты")],
         [KeyboardButton(text="Записаться на тестирование")]
     ]
-    print("test_status", methods.get_test_status(user_id, username))
     if add_remove_exam and methods.get_test_status(user_id, username) == 1:
         keyboard[1].append(KeyboardButton(text="Отменить тестирование"))
     if methods.get_test_status(user_id, username) not in [1, None]:

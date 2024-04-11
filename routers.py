@@ -66,7 +66,7 @@ async def info(message: Message):
 async def info(message: Message):
     await message.answer(
         f"Для связи с нами пишите ✍️"
-        f"\n@strattonautomation",
+        f"\n@deaspecty",
         reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                             username=message.from_user.username,
                                             add_remove_exam=exist_datetime(message.from_user.id))
@@ -88,7 +88,7 @@ async def info(message: Message):
             f"Тестирование было пройдено."
             f"\n"
             f"\nПо вопросам пересдачи пишите ✍️"
-            f"\n@strattonautomation"
+            f"\n@deaspecty"
         )
 
 
@@ -164,10 +164,8 @@ async def video(message: Message):
         date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1], '%Y-%m-%d %H:%M')
         now = datetime.datetime.now(tz=pytz.FixedOffset(300))
         video_format = message.video.mime_type.lower()
-        print(video_format)
         if message.video.duration > 40:
             return await message.reply("Извините, видео должно быть не более 40 секунд. 🕗")
-        print("Видео весит = ", message.video.file_size)
         if message.video.file_size > 10485760:  # 10 МБ в байтах
             return await message.reply("Извините, видео должно весить не более 10МБ. 💾")
         if not (video_format in ["video/mp4", "video/quicktime"]):
