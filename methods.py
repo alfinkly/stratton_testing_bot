@@ -89,6 +89,7 @@ def galochka_time_db(return_keyboard, callback):
 
 
 def exist_datetime(user_id) -> bool:
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT date, time FROM users_data WHERE user_id = {user_id}")
     row = cursor.fetchall()
