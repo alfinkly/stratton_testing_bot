@@ -14,6 +14,7 @@ coloredlogs.install()
 
 
 def galochka_date_change(callback, callback_data, return_keyboard):
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     return_keyboard = return_keyboard
     caldr = calendar.monthcalendar(callback_data.year, callback_data.month)
@@ -34,6 +35,7 @@ def galochka_date_change(callback, callback_data, return_keyboard):
 
 
 def galochka_date_db(return_keyboard, db_day, db_month, db_year):
+    con.reconnect()
     return_keyboard = return_keyboard
     # caldr = calendar.monthcalendar(db_year, db_month)
     for row in range(len(return_keyboard.inline_keyboard)):
@@ -46,6 +48,7 @@ def galochka_date_db(return_keyboard, db_day, db_month, db_year):
 
 
 def galochka_time_change(callback, callback_data, return_keyboard, time):
+    con.reconnect()
     for row in range(len(callback.message.reply_markup.inline_keyboard)):
         for data in range(len(callback.message.reply_markup.inline_keyboard[row])):
             if callback.message.reply_markup.inline_keyboard[row][data].text == "✅":
@@ -66,6 +69,7 @@ def galochka_time_change(callback, callback_data, return_keyboard, time):
 
 
 def galochka_time_db(return_keyboard, callback):
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT time FROM users_data WHERE user_id={callback.from_user.id}")
     db_row = cursor.fetchall()
@@ -104,6 +108,7 @@ def exist_datetime(user_id) -> bool:
 
 async def send_testing_message_bot(user_id=None, bot=None, username=None, to_complete=False, run_date=None,
                                    test_status=None):
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {user_id}")
     test_status_db, run_date_db = cursor.fetchone()
@@ -154,6 +159,7 @@ async def send_testing_message_bot(user_id=None, bot=None, username=None, to_com
 
 
 async def send_testing_message_callback(callback=None, to_complete=False, run_date=None, test_status=None):
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {callback.from_user.id}")
     if to_complete:
@@ -205,6 +211,7 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
 
 
 async def send_testing_message_m(message=None, to_complete=False, run_date=None, test_status=None):
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {message.from_user.id}")
     if to_complete:
@@ -261,6 +268,7 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
 
 
 def get_test_status(user_id, username):
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"SELECT test_status, user_id FROM users_data WHERE user_id = {user_id}")
     row = cursor.fetchone()
@@ -272,6 +280,7 @@ def get_test_status(user_id, username):
 
 
 def add_user(user_id, username):
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"INSERT INTO users_data (user_id, username) VALUES (%s, %s);", (user_id, username))
     con.commit()
@@ -280,6 +289,7 @@ def add_user(user_id, username):
 
 
 async def appoint_test(message, time):
+    con.reconnect()
     now = datetime.datetime.now(tz=pytz.FixedOffset(300))
     if time.hour <= now.hour and time.minute <= now.minute:
         return await message.answer(text="Указанное время уже прошло ⌛️. ")
@@ -325,6 +335,7 @@ async def appoint_test(message, time):
 
 # Select request from db
 def sql_db_select(columns: list, filter=None, table="users_data"):
+    con.reconnect()
     columns = ", ".join(columns)
     cursor = con.cursor()
     if filter is not None:
@@ -342,6 +353,7 @@ def sql_db_select(columns: list, filter=None, table="users_data"):
 
 # {"tag": "home_text"}
 def sql_db_update(columns: dict, filter: dict, table="users_date"):
+    con.reconnect()
     set_query = ""
 
     for col in columns:
@@ -359,6 +371,7 @@ def sql_db_update(columns: dict, filter: dict, table="users_date"):
 
 
 def exist_user(user_id):
+    con.reconnect()
     cursor = con.cursor()
     cursor.execute(f"SELECT user_id FROM users_data WHERE user_id={user_id}")
     if cursor.fetchone()[0] is not None:

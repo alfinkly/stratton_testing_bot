@@ -21,6 +21,7 @@ from methods import *
 
 
 def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarkup:
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute(f"select test_status from users_data where user_id={user_id}")
     status = cursor.fetchone()
@@ -46,6 +47,7 @@ def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarku
 
 
 def get_calendar(year, month, message) -> InlineKeyboardMarkup:
+    con.reconnect()
     try:
         caldr = calendar.monthcalendar(year, month)
         today = datetime.datetime.now(tz=pytz.FixedOffset(300))
@@ -116,6 +118,7 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
 
 
 def get_times(callback) -> InlineKeyboardMarkup:
+    con.reconnect()
     times = []
     start_time = 0
     cursor = con.cursor(buffered=True)
@@ -146,6 +149,7 @@ def get_times(callback) -> InlineKeyboardMarkup:
 
 
 def keyboard_is_exam_complete(from_who, sender) -> InlineKeyboardMarkup:
+    con.reconnect()
     if from_who == 0:
         texts = ["Отправить тестирование", "Не отправлять"]
     if from_who == 1:

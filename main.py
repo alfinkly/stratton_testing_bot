@@ -29,6 +29,7 @@ coloredlogs.install()
 
 @dp.callback_query(IsCompleteCallbackFactory.filter(F.action == "isComplete"))
 async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallbackFactory):
+    con.reconnect()
     if callback_data.from_who == 0:
         if callback_data.is_complete == 0:
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
@@ -61,6 +62,7 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
 
 @dp.callback_query(TimeCallbackFactory.filter(F.action == "times"))
 async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactory):
+    con.reconnect()
     return_keyboard = keyboards.get_times(callback)
     correct_time = f"{callback_data.hour}:{callback_data.minute}0"
     # correct_time = f"20:24"
@@ -140,6 +142,7 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
 
 
 async def reactive_jobs():
+    con.reconnect()
     cursor = con.cursor(buffered=True)
     cursor.execute("SELECT user_id, date, time, username FROM users_data "
                    "WHERE user_id is not null and date is not null and time is not null and username is not null"
@@ -169,6 +172,7 @@ async def reactive_jobs():
 
 @dp.callback_query(F.data == "on_task")
 async def month(callback: types.CallbackQuery):
+    con.reconnect()
     await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
     for c_id in config.checker_ids:
         await bot.send_message(chat_id=c_id, text=f"@{callback.from_user.username} приступил к тестированию")
@@ -182,6 +186,7 @@ async def month(callback: types.CallbackQuery):
 
 
 async def start_bot():
+    con.reconnect()
     await reactive_jobs()
     logging.basicConfig(level=logging.DEBUG)
     await bot.delete_webhook(drop_pending_updates=True)

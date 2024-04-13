@@ -22,6 +22,7 @@ coloredlogs.install(level=logging.DEBUG)
 
 @router.callback_query(DateCallbackFactory.filter(F.action == "set_date"))
 async def send_random_value(callback: types.CallbackQuery, callback_data: DateCallbackFactory):
+    con.reconnect()
     return_keyboard = callback.message.reply_markup
     cursor = con.cursor(buffered=True)
     cursor.execute(f"UPDATE users_data set test_status=1 where user_id={callback.from_user.id}")
