@@ -1,13 +1,11 @@
 import asyncio
 import datetime
-
-import pytz
-from dateutil import tz  as tz
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, Message
 import logging
+
 import coloredlogs
+import pytz
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.types import InlineKeyboardMarkup
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import callback_router
@@ -84,19 +82,20 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                                          '%Y-%m-%d %H:%M')
                 else:
                     return callback.message.answer(text="Произошла ошибка")
-                if config.DEV_MODE:
-                    date_now = datetime.datetime.now(tz=pytz.FixedOffset(300))
-                    date_to = datetime.datetime(year=date_now.year, month=date_now.month, day=date_now.day,
-                                                hour=date_now.hour, minute=date_now.minute)
-                    date_to += datetime.timedelta(minutes=1)
-                    timed = datetime.time(hour=date_to.hour, minute=date_to.minute).strftime("%H:%M")
-                    cursor.execute(f"update users_data set date=%s, time=%s"
-                                   f" where user_id={callback.from_user.id}",
-                                   (date_to, f"{timed}"))
-                    con.commit()
+                # if config.DEV_MODE:
+                #     date_now = datetime.datetime.now(tz=pytz.FixedOffset(300))
+                #     date_to = datetime.datetime(year=date_now.year, month=date_now.month, day=date_now.day,
+                #                                 hour=date_now.hour, minute=date_now.minute)
+                #     date_to += datetime.timedelta(minutes=1)
+                #     timed = datetime.time(hour=date_to.hour, minute=date_to.minute).strftime("%H:%M")
+                #     cursor.execute(f"update users_data set date=%s, time=%s"
+                #                    f" where user_id={callback.from_user.id}",
+                #                    (date_to, f"{timed}"))
+                #     con.commit()
                 scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
-                started_at = datetime.datetime.strptime(datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d "
-                                                                                                            "%H:%M")
+                started_at = datetime.datetime.strptime(
+                    datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d "
+                                                                                                "%H:%M")
                 cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s",
                                (started_at, callback.from_user.id))
                 con.commit()

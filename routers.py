@@ -1,16 +1,17 @@
 import datetime
 import logging
+
 import coloredlogs
 import pytz
-from dateutil import tz 
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
-import methods
-from methods import exist_datetime
+
 import config
-from config import con
 import keyboards
+import methods
+from config import con
+from methods import exist_datetime
 
 router = Router()
 # con = sqlite3.connect("database.db", timeout=30)
@@ -162,7 +163,8 @@ async def video(message: Message):
         row_db = cursor.fetchall()
         cursor.close()
         date_to = datetime.datetime.strptime(row_db[0][0].split(" ")[0] + " " + row_db[0][1], '%Y-%m-%d %H:%M')
-        now = datetime.datetime.now(tz=pytz.FixedOffset(300))
+        date_to = pytz.timezone('Asia/Almaty').localize(date_to)
+        now = datetime.datetime.now(tz=pytz.timezone('Asia/Almaty'))
         video_format = message.video.mime_type.lower()
         if message.video.duration > 40:
             return await message.reply("Извините, видео должно быть не более 40 секунд. 🕗")

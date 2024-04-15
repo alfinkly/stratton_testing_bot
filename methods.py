@@ -1,10 +1,11 @@
 import calendar
 import datetime
 import logging
+
 import coloredlogs
 import pytz
-from dateutil import tz 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 import config
 import keyboards
 from config import con
@@ -146,11 +147,12 @@ async def send_testing_message_bot(user_id=None, bot=None, username=None, to_com
                                reply_markup=keyboards.main_actions(user_id=user_id, username=username))
         await bot.send_message(chat_id=int(user_id), text="Нажмите на кнопку когда приступите к тестированию",
                                reply_markup=keyboards.on_task)
-    if test_status == 3:
+    elif test_status == 3:
         await bot.send_message(chat_id=int(user_id), text="У Вас есть 10 минут, чтобы отправить результаты!",
                                reply_markup=keyboards.main_actions(user_id=user_id,
                                                                    username=username))
-    if test_status == 5:
+    elif test_status == 5 and test_status_db in [2, 3]:
+
         await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
                                                           f"\nПо вопросам пересдачи пишите  ✍️"
                                                           f"\n@deaspecty",
@@ -202,7 +204,7 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
         await callback.message.answer(text="У Вас есть 10 минут, чтобы отправить результаты!",
                                       reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
                                                                           username=callback.from_user.username))
-    if test_status == 5:
+    if test_status == 5 and test_status_db in [2, 3]:
         await callback.message.answer(text="Ваше тестирование не выполнено"
                                            f"\nПо вопросам пересдачи пишите  ✍️"
                                            f"\n@deaspecty",
@@ -236,7 +238,6 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
                            (test_status, message.from_user.id))
             con.commit()
         else:
-            logging.warning("test_message_not_3")
             return
     cursor.close()
     if test_status == 2:
@@ -259,7 +260,7 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
             text="У Вас есть 10 минут, чтобы отправить результаты!",
             reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                 username=message.from_user.username))
-    if test_status == 5:
+    if test_status == 5 and test_status_db in [2, 3]:
         await message.answer(text="Ваше тестирование не выполнено"
                                   f"\nПо вопросам пересдачи пишите  ✍️"
                                   f"\n@deaspecty",
@@ -304,7 +305,8 @@ async def appoint_test(message, time):
                                              '%Y-%m-%d %H:%M')
 
     scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
-    started_at = datetime.datetime.strptime(datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+    started_at = datetime.datetime.strptime(
+        datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, message.from_user.id))
     con.commit()
     scheduler.add_job(send_testing_message_m, trigger='date', run_date=date_to,
@@ -331,6 +333,12 @@ async def appoint_test(message, time):
                          reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                              username=message.from_user.username,
                                                              add_remove_exam=exist_datetime(message.from_user.id)))
+    for c_id in config.checker_ids:
+        await message.bot.send_message(chat_id=c_id, text=f"@{message.from_user.username} "
+                                                          f"записался на тестирование:"
+                                                          f"\n"
+                                                          f"\nДата: {date}"
+                                                          f"\nВремя: {row_db[0][1]}")
 
 
 # Select request from db
