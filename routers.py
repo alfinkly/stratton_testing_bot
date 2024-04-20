@@ -174,9 +174,14 @@ async def video(message: Message):
             return await message.reply(
                 "Извините, формат видео недопустим. Только видео с расширением .mov или .mp4 ")
         if date_to < now < date_to + config.exam_times["duration"]:  # or config.DEV_MODE:
-            await message.send_copy(message.from_user.id,
-                                    reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
-                                                                                     sender=message.from_user.id))
+            # await message.send_copy(message.from_user.id,
+            #                         reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
+            #                                                                          sender=message.from_user.id))
+            await message.answer_video(video=message.video.file_id,
+                                       reply_markup=keyboards.keyboard_is_exam_complete(from_who=0,
+                                                                                        sender=message.from_user.id),
+                                       caption=f"Тестирование @{message.from_user.username}"
+                                       )
             con.commit()
     elif methods.get_test_status(message.from_user.id, message.from_user.username) in [5, 6]:
         await message.answer("Вы отправили видео не в срок! ⌛️")
@@ -188,8 +193,9 @@ async def video(message: Message):
 async def decline_test(message: Message):
     if methods.get_test_status(message.from_user.id, message.from_user.username) in [2, 3]:
         await methods.send_testing_message_m(message, run_date=datetime.datetime.
-                                             strptime(datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M"),
-                                                      "%Y-%m-%d %H:%M"), test_status=5)
+                                             strptime(
+            datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M"),
+            "%Y-%m-%d %H:%M"), test_status=5)
     if methods.get_test_status(message.from_user.id, message.from_user.username) in [4]:
         await message.answer(text="Нельзя отменить начатое тестирование")
 
@@ -230,5 +236,3 @@ async def format_time(message: Message):
     elif methods.get_test_status(message.from_user.id, message.from_user.username) == 4:
         await message.answer("Вы уже отправили тестирование! ❌")
     cursor.close()
-
-

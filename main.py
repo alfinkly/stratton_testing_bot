@@ -43,15 +43,15 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
             cursor.close()
     elif callback_data.from_who == 1:
         if callback_data.is_complete == 0:
-            await callback.message.answer(text=f"Вы отклонили тестирование ❌")
+            await callback.message.answer(text=f"Вы отклонили тестирование @{callback.from_user.username} ❌")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text="Тестирование отклонен ❌",
+            await bot.send_message(callback_data.sender, text=f"Тестирование отклонено❌",
                                    reply_markup=keyboards.main_actions(callback.from_user.id,
                                                                        callback.from_user.username))
         elif callback_data.is_complete == 1:
-            await callback.message.answer(text=f"Вы приняли тестирование ✅")
+            await callback.message.answer(text=f"Вы приняли тестирование @{callback.from_user.username} ✅")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text="Тестирование принято ✅",
+            await bot.send_message(callback_data.sender, text=f"Тестирование принято ✅",
                                    reply_markup=keyboards.main_actions(callback.from_user.id,
                                                                        callback.from_user.username))
             await send_testing_message_callback(callback, to_complete=True)
