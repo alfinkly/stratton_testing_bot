@@ -158,6 +158,8 @@ async def send_testing_message_bot(user_id=None, bot=None, username=None, to_com
                                                           f"\n@deaspecty",
                                reply_markup=keyboards.main_actions(user_id=user_id,
                                                                    username=username))
+        for admin in config.checker_ids:
+            await bot.send_message(admin, text=f"@{username} не прошел тестирование ❌")
 
 
 async def send_testing_message_callback(callback=None, to_complete=False, run_date=None, test_status=None):
@@ -210,6 +212,8 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
                                            f"\n@deaspecty",
                                       reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
                                                                           username=callback.from_user.username))
+        for admin in config.checker_ids:
+            await callback.bot.send_message(admin, text=f"@{callback.from_user.username} не прошел тестирование ❌")
 
 
 async def send_testing_message_m(message=None, to_complete=False, run_date=None, test_status=None):
@@ -266,6 +270,8 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
                                   f"\n@deaspecty",
                              reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                                  username=message.from_user.username))
+        for admin in config.checker_ids:
+            await message.bot.send_message(admin, text=f"@{message.from_user.username} не прошел тестирование ❌")
 
 
 def get_test_status(user_id, username):
