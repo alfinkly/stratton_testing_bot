@@ -14,7 +14,7 @@ import keyboards
 import routers
 from config import TOKEN, con
 from factories import IsCompleteCallbackFactory, TimeCallbackFactory
-from methods import send_testing_message_bot, send_testing_message_callback
+from methods import send_testing_message_callback
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -133,40 +133,12 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                                                       add_remove_exam=
                                                                       routers.exist_datetime(callback.from_user.id)))
     for c_id in config.checker_ids:
-        await bot.send_message(chat_id=c_id, text=f"@{callback.from_user.username} "
+        await bot.send_message(chat_id=c_id, text=f"@{callback.from_user.username} {callback.from_user.full_name}"
+                                                  f"\n"
                                                   f"записался на тестирование:"
                                                   f"\n"
                                                   f"\nДата: {date}"
                                                   f"\nВремя: {row_db[0][1]}")
-
-
-async def reactive_jobs():
-    con.reconnect()
-    cursor = con.cursor(buffered=True)
-    cursor.execute("SELECT user_id, date, time, username FROM users_data "
-                   "WHERE user_id is not null and date is not null and time is not null and username is not null"
-                   " and test_status = 1")
-    users = cursor.fetchall()
-    for user in users:
-        date_to = datetime.datetime.strptime(user[1].split(" ")[0] + " " + user[2],
-                                             '%Y-%m-%d %H:%M')
-        scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
-        started_at = datetime.datetime.strptime(datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M:%S"),
-                                                "%Y-%m-%d %H:%M:%S")
-        cursor.execute("UPDATE users_data SET run_date=%s WHERE user_id=%s", (started_at, user[0]))
-        con.commit()
-        scheduler.add_job(send_testing_message_bot, trigger='date', run_date=date_to,
-                          kwargs={"bot": bot, "user_id": user[0], "run_date": started_at, "username": user[3],
-                                  "test_status": 2})
-        scheduler.add_job(send_testing_message_bot, trigger='date',
-                          run_date=str(date_to + config.exam_times["send_notification"]),
-                          kwargs={"bot": bot, "user_id": user[0], "run_date": started_at, "username": user[3],
-                                  "test_status": 3}, )
-        scheduler.add_job(send_testing_message_bot, trigger='date',
-                          run_date=str(date_to + config.exam_times["duration"]),
-                          kwargs={"bot": bot, "user_id": user[0], "run_date": started_at, "username": user[3],
-                                  "test_status": 5})
-        scheduler.start()
 
 
 @dp.callback_query(F.data == "on_task")
@@ -186,7 +158,6 @@ async def month(callback: types.CallbackQuery):
 
 async def start_bot():
     con.reconnect()
-    await reactive_jobs()
     logging.basicConfig(level=logging.DEBUG)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)

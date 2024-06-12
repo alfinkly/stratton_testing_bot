@@ -33,8 +33,8 @@ def main_actions(user_id, username, add_remove_exam=False) -> ReplyKeyboardMarku
         keyboard[1].append(KeyboardButton(text="Отменить тестирование"))
     if methods.get_test_status(user_id, username) not in [1, None]:
         keyboard[1].pop(0)
-    if methods.get_test_status(user_id, username) in [2, 3]:
-        keyboard.append([KeyboardButton(text="Завершить тестирование")])
+    # if methods.get_test_status(user_id, username) in [2, 3]:
+    #     keyboard.append([KeyboardButton(text="Завершить тестирование")])
     if config.DEV_MODE:
         keyboard.append([KeyboardButton(text="/start"), KeyboardButton(text="/remake")])
     # if user_id == config.checker_id:

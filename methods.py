@@ -1,6 +1,7 @@
 import calendar
 import datetime
 import logging
+import random
 
 import coloredlogs
 import pytz
@@ -107,61 +108,6 @@ def exist_datetime(user_id) -> bool:
     return False
 
 
-async def send_testing_message_bot(user_id=None, bot=None, username=None, to_complete=False, run_date=None,
-                                   test_status=None):
-    con.reconnect()
-    cursor = con.cursor(buffered=True)
-    cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {user_id}")
-    test_status_db, run_date_db = cursor.fetchone()
-    if to_complete:
-        cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, user_id))
-        con.commit()
-        return
-    if run_date_db is not None:
-        run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S")
-        if run_date < run_date_db:
-            return
-    if test_status is not None:
-        if test_status_db == test_status - 1:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (test_status, user_id))
-            con.commit()
-        elif test_status_db in [2, 3] and test_status == 4:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (test_status, user_id))
-            con.commit()
-        else:
-            return
-    cursor.close()
-    if test_status == 2:
-        await bot.send_message(chat_id=int(user_id), text="Ваше тестирование началось, успехов!\n\n"
-                                                          "Время на выполнение: 4 часа\n"
-                                                          "Задание будет на проверке когда вы отправите видео или ссылку "
-                                                          "и нажмете кнопку \"Отправить тестирование\" ✅\n"
-                                                          "Тестирование можно окончить(то есть не выполнить) по кнопке "
-                                                          "'Закончить тестирование'\n\n"
-                                                          f"Задание: {config.task}\n\n"
-                                                          "Результат выслать в формате:\n"
-                                                          "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-                                                          "- ссылка на запущенного бота.",
-                               reply_markup=keyboards.main_actions(user_id=user_id, username=username))
-        await bot.send_message(chat_id=int(user_id), text="Нажмите на кнопку когда приступите к тестированию",
-                               reply_markup=keyboards.on_task)
-    elif test_status == 3:
-        await bot.send_message(chat_id=int(user_id), text="У Вас есть 10 минут, чтобы отправить результаты!",
-                               reply_markup=keyboards.main_actions(user_id=user_id,
-                                                                   username=username))
-    elif test_status == 5 and test_status_db in [2, 3]:
-
-        await bot.send_message(chat_id=int(user_id), text="Ваше тестирование не выполнено"
-                                                          f"\nПо вопросам пересдачи пишите  ✍️"
-                                                          f"\n@deaspecty",
-                               reply_markup=keyboards.main_actions(user_id=user_id,
-                                                                   username=username))
-        for admin in config.checker_ids:
-            await bot.send_message(admin, text=f"@{username} не прошел тестирование ❌")
-
-
 async def send_testing_message_callback(callback=None, to_complete=False, run_date=None, test_status=None):
     con.reconnect()
     cursor = con.cursor(buffered=True)
@@ -188,16 +134,26 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
             return
     cursor.close()
     if test_status == 2:
+        ids = []
+        while True:
+            if len(ids) > 4:
+                break
+            id = random.randint(0, len(config.tasks))
+            if id not in ids:
+                ids.append(id)
+        tasks_text = "\n".join([f'{i+1}) ' + config.tasks[ids[i]] for i in range(len(ids))])
+        cursor.execute(f"UPDATE users_data SET tasks={tasks_text} WHERE user_id={callback.from_user.id}")
+        con.commit()
         await callback.message.answer(text="Ваше тестирование началось, успехов!\n\n"
                                            "Время на выполнение: 4 часа\n"
                                            "Задание будет на проверке когда вы отправите видео или ссылку "
                                            "и нажмете кнопку \"Отправить тестирование\" ✅\n"
                                            "Тестирование можно окончить(то есть не выполнить) по кнопке "
                                            "'Закончить тестирование'\n\n"
-                                           f"Задание: {config.task}\n\n"
+                                           f"Задание: \n"
+                                           f"{tasks_text}\n\n"
                                            "Результат выслать в формате:\n"
-                                           "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-                                           "- ссылка на запущенного бота.",
+                                           "- видео работы кода до 60 секунд и размером не более 10МБ\n",
                                       reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
                                                                           username=callback.from_user.username))
         await callback.message.answer(text="Нажмите на кнопку когда приступите к тестированию",
@@ -243,18 +199,26 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
             con.commit()
         else:
             return
-    cursor.close()
+    
     if test_status == 2:
+        ids = []
+        while True:
+            if len(ids) > 4:
+                break
+            id = random.randint(0, len(config.tasks)-1)
+            if id not in ids:
+                ids.append(id)
+        tasks_text = "\n".join([f'{i+1}) ' + config.tasks[ids[i]] for i in range(len(ids))])
+        cursor.execute(f"UPDATE users_data SET tasks='{tasks_text}' WHERE user_id={message.from_user.id}")
+        con.commit()
         await message.answer(text="Ваше тестирование началось, успехов!\n\n"
                                   "Время на выполнение: 4 часа\n"
                                   "Задание будет на проверке когда вы отправите видео или ссылку "
-                                  "и нажмете кнопку \"Отправить тестирование\" ✅\n"
-                                  "Тестирование можно окончить(то есть не выполнить) по кнопке "
-                                  "'Закончить тестирование'\n\n"
-                                  f"Задание: {config.task}\n\n"
+                                  "и нажмете кнопку \"Отправить тестирование\" ✅\n\n"
+                                  f"Задание: \n"
+                                  f"{tasks_text}\n\n"
                                   "Результат выслать в формате:\n"
-                                  "- видео работы кода до 40 секунд и размером не более 10МБ;\n"
-                                  "- ссылка на запущенного бота.",
+                                  "- видео работы кода до 60 секунд и размером не более 10МБ\n",
                              reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                                                  username=message.from_user.username))
         await message.answer(text="Нажмите на кнопку когда приступите к тестированию",
@@ -272,6 +236,7 @@ async def send_testing_message_m(message=None, to_complete=False, run_date=None,
                                                                  username=message.from_user.username))
         for admin in config.checker_ids:
             await message.bot.send_message(admin, text=f"@{message.from_user.username} не прошел тестирование ❌")
+    cursor.close()
 
 
 def get_test_status(user_id, username):
@@ -340,8 +305,8 @@ async def appoint_test(message, time):
                                                              username=message.from_user.username,
                                                              add_remove_exam=exist_datetime(message.from_user.id)))
     for c_id in config.checker_ids:
-        await message.bot.send_message(chat_id=c_id, text=f"@{message.from_user.username} "
-                                                          f"записался на тестирование:"
+        await message.bot.send_message(chat_id=c_id, text=f"@{message.from_user.username} {message.from_user.full_name}"
+                                                          f"\nзаписался на тестирование:"
                                                           f"\n"
                                                           f"\nДата: {date}"
                                                           f"\nВремя: {row_db[0][1]}")
