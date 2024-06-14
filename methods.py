@@ -138,7 +138,7 @@ async def send_testing_message_callback(callback=None, to_complete=False, run_da
         while True:
             if len(ids) > 4:
                 break
-            id = random.randint(0, len(config.tasks))
+            id = random.randint(0, len(config.tasks) - 1)
             if id not in ids:
                 ids.append(id)
         tasks_text = "\n".join([f'{i+1}) ' + config.tasks[ids[i]] for i in range(len(ids))])
