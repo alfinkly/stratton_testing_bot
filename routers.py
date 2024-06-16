@@ -184,37 +184,22 @@ async def video(message: Message):
         await message.answer("Вы уже отправили тестирование! ❌")
 
 
-
-# @router.message(F.text == "Завершить тестирование")
-# async def decline_test(message: Message):
-#     if methods.get_test_status(message.from_user.id, message.from_user.username) in [2, 3]:
-#         await methods.send_testing_message_m(message, run_date=datetime.datetime.
-#                                              strptime(
-#             datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M"),
-#             "%Y-%m-%d %H:%M"), test_status=5)
-#     if methods.get_test_status(message.from_user.id, message.from_user.username) in [4]:
-#         await message.answer(text="Нельзя отменить начатое тестирование")
-
-
-# @router.message(F.text == "Изменить тексты")
-# async def decline_test(message: Message):
-#     if message.from_user.id == config.checker_id:
-#         await message.answer(text="Выберите текст ✏️", reply_markup=keyboards.edit_texts())
-#         methods.sql_db_update(columns={"test_status": 7},
-#                               filter={"user_id": message.from_user.id})
-
-
 @router.message(F.text)
 async def format_time(message: Message):
     cursor = con.cursor(buffered=True)
     cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
     if methods.get_test_status(message.from_user.id, message.from_user.username) == 1:
-        for time_format in ["%H:%M", "%H %M", "%H-%M", "%H.%M"]:
+        is_time = False
+        for time_format in ["%H:%M", "%H %M", "%H-%M", "%H.%M", "%H_%M"]:
             try:
                 time = datetime.datetime.strptime(message.text, time_format)
+                is_time = True
                 await methods.appoint_test(message, time)
+                break
             except ValueError:
                 pass
+        if not is_time:
+            await message.answer("Это не похоже на время")
     elif methods.get_test_status(message.from_user.id, message.from_user.username) in [2, 3]:
         if (message.text.startswith("@") and message.text.endswith("bot") and not (" " in message.text)) or \
                 (message.text.startswith("https://t.me/") and message.text.endswith("bot") and
