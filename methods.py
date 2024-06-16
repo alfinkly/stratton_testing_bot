@@ -5,13 +5,13 @@ import random
 
 import coloredlogs
 import pytz
+from aiogram.types import CallbackQuery, Message
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import config
 import keyboards
 from config import con
 
-# cursor = con.cursor(buffered=True)
 coloredlogs.install()
 
 
@@ -108,135 +108,113 @@ def exist_datetime(user_id) -> bool:
     return False
 
 
-async def send_testing_message_callback(callback=None, to_complete=False, run_date=None, test_status=None):
+# Функция для получения данных пользователя из базы данных
+def get_user_data(user_id):
     con.reconnect()
     cursor = con.cursor(buffered=True)
-    cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {callback.from_user.id}")
-    if to_complete:
-        cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (6, callback.from_user.id))
-        con.commit()
-        return
-    test_status_db, run_date_db = cursor.fetchone()
-    if run_date_db is not None:  # если не нулевой, то превратить в объект datetime
-        run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S")
-        if run_date < run_date_db:
-            return
-    if test_status is not None:
-        if test_status_db == test_status - 1:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (test_status, callback.from_user.id))
-            con.commit()
-        elif test_status_db in [2, 3] and test_status == 4:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (test_status, callback.from_user.id))
-            con.commit()
-        else:
-            return
+    cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {user_id}")
+    data = cursor.fetchone()
     cursor.close()
-    if test_status == 2:
-        ids = []
-        while True:
-            if len(ids) > 4:
-                break
-            id = random.randint(0, len(config.tasks) - 1)
-            if id not in ids:
-                ids.append(id)
-        tasks_text = "\n".join([f'{i+1}) ' + config.tasks[ids[i]] for i in range(len(ids))])
-        cursor.execute(f"UPDATE users_data SET tasks={tasks_text} WHERE user_id={callback.from_user.id}")
-        con.commit()
-        await callback.message.answer(text="Ваше тестирование началось, успехов!\n\n"
-                                           "Время на выполнение: 4 часа\n"
-                                           "Задание будет на проверке когда вы отправите видео или ссылку "
-                                           "и нажмете кнопку \"Отправить тестирование\" ✅\n"
-                                           "Тестирование можно окончить(то есть не выполнить) по кнопке "
-                                           "'Закончить тестирование'\n\n"
-                                           f"Задание: \n"
-                                           f"{tasks_text}\n\n"
-                                           "Результат выслать в формате:\n"
-                                           "- видео работы кода до 60 секунд и размером не более 10МБ\n",
-                                      reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
-                                                                          username=callback.from_user.username))
-        await callback.message.answer(text="Нажмите на кнопку когда приступите к тестированию",
-                                      reply_markup=keyboards.on_task)
-    if test_status == 3:
-        await callback.message.answer(text="У Вас есть 10 минут, чтобы отправить результаты!",
-                                      reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
-                                                                          username=callback.from_user.username))
-    if test_status == 5 and test_status_db in [2, 3]:
-        await callback.message.answer(text="Ваше тестирование не выполнено"
-                                           f"\nПо вопросам пересдачи пишите  ✍️"
-                                           f"\n@deaspecty",
-                                      reply_markup=keyboards.main_actions(user_id=callback.from_user.id,
-                                                                          username=callback.from_user.username))
-        for admin in config.checker_ids:
-            await callback.bot.send_message(admin, text=f"@{callback.from_user.username} не прошел тестирование ❌")
+    return data
 
 
-async def send_testing_message_m(message=None, to_complete=False, run_date=None, test_status=None):
+# Функция для обновления статуса тестирования пользователя в базе данных
+def update_test_status(user_id, status):
     con.reconnect()
     cursor = con.cursor(buffered=True)
-    cursor.execute(f"SELECT test_status, run_date FROM users_data WHERE user_id = {message.from_user.id}")
-    if to_complete:
-        cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                       (6, message.from_user.id))
-        con.commit()
-        logging.warning("test_message_not_1")
+    cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s", (status, user_id))
+    con.commit()
+    cursor.close()
+
+
+# Функция для проверки и обновления статуса тестирования
+def check_and_update_test_status(user_id, current_status, new_status):
+    if current_status == new_status - 1 or (current_status in [2, 3] and new_status in [4, 5]):
+        update_test_status(user_id, new_status)
+        return True
+    return False
+
+
+# Функция для начала тестирования
+async def start_testing(message, user_id):
+    ids = random.sample(range(len(config.tasks)), 3)
+    tasks_text = "\n".join([f'{i + 1}) ' + config.tasks[ids[i]] for i in range(len(ids))])
+
+    con.reconnect()
+    cursor = con.cursor(buffered=True)
+    cursor.execute("UPDATE users_data SET tasks=%s WHERE user_id=%s", (tasks_text, user_id))
+    con.commit()
+    cursor.close()
+
+    await message.answer(
+        text="Ваше тестирование началось, успехов!\n\n"
+             "Время на выполнение: 4 часа\n"
+             "Задание будет на проверке когда вы отправите видео или ссылку "
+             "и нажмете кнопку \"Отправить тестирование\" ✅\n\n"
+             f"Задание: \n"
+             f"{tasks_text}\n\n"
+             "Результат выслать в формате:\n"
+             "- видео работы кода до 60 секунд и размером не более 10МБ\n",
+        reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+    )
+    await message.answer(
+        text="Нажмите на кнопку когда приступите к тестированию",
+        reply_markup=keyboards.on_task
+    )
+
+
+# Функция для отправки уведомлений администраторам
+async def notify_admins(bot, username):
+    for admin in config.checker_ids:
+        await bot.send_message(admin, text=f"@{username} не прошел тестирование ❌")
+
+
+# Основная функция для обработки тестирования
+async def process_testing(user_id, message=None, to_complete=False, run_date=None, test_status=None):
+    user_data = get_user_data(user_id)
+    if user_data is None:
         return
-    test_status_db, run_date_db = cursor.fetchone()
+
+    test_status_db, run_date_db = user_data
     if run_date_db is not None:
         run_date_db = datetime.datetime.strptime(run_date_db, "%Y-%m-%d %H:%M:%S")
-        if run_date < run_date_db:
-            logging.warning("test_message_not_2")
+        if run_date and run_date < run_date_db:
             return
+
+    if to_complete:
+        update_test_status(user_id, 6)
+        return
+
     if test_status is not None:
-        if test_status_db == test_status - 1:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (test_status, message.from_user.id))
-            con.commit()
-        elif test_status_db in [2, 3] and test_status == 5:
-            cursor.execute("UPDATE users_data SET test_status=%s WHERE user_id=%s",
-                           (test_status, message.from_user.id))
-            con.commit()
-        else:
+        if not check_and_update_test_status(user_id, test_status_db, test_status):
             return
-    
+
     if test_status == 2:
-        ids = []
-        while True:
-            if len(ids) > 4:
-                break
-            id = random.randint(0, len(config.tasks)-1)
-            if id not in ids:
-                ids.append(id)
-        tasks_text = "\n".join([f'{i+1}) ' + config.tasks[ids[i]] for i in range(len(ids))])
-        cursor.execute(f"UPDATE users_data SET tasks='{tasks_text}' WHERE user_id={message.from_user.id}")
-        con.commit()
-        await message.answer(text="Ваше тестирование началось, успехов!\n\n"
-                                  "Время на выполнение: 4 часа\n"
-                                  "Задание будет на проверке когда вы отправите видео или ссылку "
-                                  "и нажмете кнопку \"Отправить тестирование\" ✅\n\n"
-                                  f"Задание: \n"
-                                  f"{tasks_text}\n\n"
-                                  "Результат выслать в формате:\n"
-                                  "- видео работы кода до 60 секунд и размером не более 10МБ\n",
-                             reply_markup=keyboards.main_actions(user_id=message.from_user.id,
-                                                                 username=message.from_user.username))
-        await message.answer(text="Нажмите на кнопку когда приступите к тестированию",
-                             reply_markup=keyboards.on_task)
-    if test_status == 3:
+        await start_testing(message, user_id)
+    elif test_status == 3:
         await message.answer(
             text="У Вас есть 10 минут, чтобы отправить результаты!",
-            reply_markup=keyboards.main_actions(user_id=message.from_user.id,
-                                                username=message.from_user.username))
-    if test_status == 5 and test_status_db in [2, 3]:
-        await message.answer(text="Ваше тестирование не выполнено"
-                                  f"\nПо вопросам пересдачи пишите  ✍️"
-                                  f"\n@deaspecty",
-                             reply_markup=keyboards.main_actions(user_id=message.from_user.id,
-                                                                 username=message.from_user.username))
-        for admin in config.checker_ids:
-            await message.bot.send_message(admin, text=f"@{message.from_user.username} не прошел тестирование ❌")
-    cursor.close()
+            reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+        )
+    elif test_status == 5 and test_status_db in [2, 3]:
+        await message.answer(
+            text="Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n@deaspecty",
+            reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+        )
+        await notify_admins(message.bot, message.from_user.username)
+
+
+# Функция для обработки callback
+async def send_testing_message_callback(callback: CallbackQuery, to_complete=False, run_date=None, test_status=None):
+    await process_testing(callback.from_user.id, message=callback.message, to_complete=to_complete, run_date=run_date,
+                          test_status=test_status)
+    await callback.answer()
+
+
+# Функция для обработки message
+async def send_testing_message_m(message: Message, to_complete=False, run_date=None, test_status=None):
+    await process_testing(message.from_user.id, message=message, to_complete=to_complete, run_date=run_date,
+                          test_status=test_status)
 
 
 def get_test_status(user_id, username):
@@ -312,7 +290,6 @@ async def appoint_test(message, time):
                                                           f"\nВремя: {row_db[0][1]}")
 
 
-# Select request from db
 def sql_db_select(columns: list, filter=None, table="users_data"):
     con.reconnect()
     columns = ", ".join(columns)
@@ -330,7 +307,6 @@ def sql_db_select(columns: list, filter=None, table="users_data"):
     return row
 
 
-# {"tag": "home_text"}
 def sql_db_update(columns: dict, filter: dict, table="users_date"):
     con.reconnect()
     set_query = ""
