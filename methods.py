@@ -145,23 +145,40 @@ async def start_testing(message, user_id):
     cursor.execute("UPDATE users_data SET tasks=%s WHERE user_id=%s", (tasks_text, user_id))
     con.commit()
     cursor.close()
-
-    await message.answer(
-        text="Ваше тестирование началось, успехов!\n\n"
-             "Время на выполнение: 4 часа\n"
-             "Задание будет на проверке когда вы отправите видео или ссылку "
-             "и нажмете кнопку \"Отправить тестирование\" ✅\n"
-             "Писать ботов только на aiogram 3 версии\n\n"
-             f"Задание: \n"
-             f"{tasks_text}\n\n"
-             "Результат выслать в формате:\n"
-             "- видео работы кода до 60 секунд и размером не более 10МБ\n",
-        reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
-    )
-    await message.answer(
-        text="Нажмите на кнопку когда приступите к тестированию",
-        reply_markup=keyboards.on_task
-    )
+    if type(message) == Message:
+        await message.answer(
+            text="Ваше тестирование началось, успехов!\n\n"
+                 "Время на выполнение: 4 часа\n"
+                 "Задание будет на проверке когда вы отправите видео или ссылку "
+                 "и нажмете кнопку \"Отправить тестирование\" ✅\n"
+                 "Писать ботов только на aiogram 3 версии\n\n"
+                 f"Задание: \n"
+                 f"{tasks_text}\n\n"
+                 "Результат выслать в формате:\n"
+                 "- видео работы кода до 60 секунд и размером не более 10МБ\n",
+            reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+        )
+        await message.answer(
+            text="Нажмите на кнопку когда приступите к тестированию",
+            reply_markup=keyboards.on_task
+        )
+    elif type(message) == CallbackQuery:
+        await message.message.answer(
+            text="Ваше тестирование началось, успехов!\n\n"
+                 "Время на выполнение: 4 часа\n"
+                 "Задание будет на проверке когда вы отправите видео или ссылку "
+                 "и нажмете кнопку \"Отправить тестирование\" ✅\n"
+                 "Писать ботов только на aiogram 3 версии\n\n"
+                 f"Задание: \n"
+                 f"{tasks_text}\n\n"
+                 "Результат выслать в формате:\n"
+                 "- видео работы кода до 60 секунд и размером не более 10МБ\n",
+            reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+        )
+        await message.message.answer(
+            text="Нажмите на кнопку когда приступите к тестированию",
+            reply_markup=keyboards.on_task
+        )
 
 
 # Функция для отправки уведомлений администраторам
@@ -193,21 +210,33 @@ async def process_testing(user_id, message=None, to_complete=False, run_date=Non
     if test_status == 2:
         await start_testing(message, user_id)
     elif test_status == 3:
-        await message.answer(
-            text="У Вас есть 10 минут, чтобы отправить результаты!",
-            reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
-        )
+        if type(message) == Message:
+            await message.answer(
+                text="У Вас есть 10 минут, чтобы отправить результаты!",
+                reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+            )
+        elif type(message) == CallbackQuery:
+            await message.message.answer(
+                text="У Вас есть 10 минут, чтобы отправить результаты!",
+                reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+            )
     elif test_status == 5 and test_status_db in [2, 3]:
-        await message.answer(
-            text="Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n@deaspecty",
-            reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
-        )
+        if type(message) == Message:
+            await message.answer(
+                text="Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n@deaspecty",
+                reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+            )
+        elif type(message) == CallbackQuery:
+            await message.message.answer(
+                text="Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n@deaspecty",
+                reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
+            )
         await notify_admins(message.bot, message.from_user.username)
 
 
 # Функция для обработки callback
 async def send_testing_message_callback(callback: CallbackQuery, to_complete=False, run_date=None, test_status=None):
-    await process_testing(callback.from_user.id, message=callback.message, to_complete=to_complete, run_date=run_date,
+    await process_testing(callback.from_user.id, message=callback, to_complete=to_complete, run_date=run_date,
                           test_status=test_status)
     await callback.answer()
 
