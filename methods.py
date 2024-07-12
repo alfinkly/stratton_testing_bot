@@ -238,7 +238,6 @@ async def process_testing(user_id, message=None, to_complete=False, run_date=Non
 async def send_testing_message_callback(callback: CallbackQuery, to_complete=False, run_date=None, test_status=None):
     await process_testing(callback.from_user.id, message=callback, to_complete=to_complete, run_date=run_date,
                           test_status=test_status)
-    await callback.answer()
 
 
 # Функция для обработки message

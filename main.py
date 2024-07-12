@@ -7,7 +7,7 @@ import pytz
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import InlineKeyboardMarkup
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+from aiogram.enums import ParseMode
 import callback_router
 import config
 import keyboards
@@ -51,9 +51,41 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
         elif callback_data.is_complete == 1:
             await callback.message.answer(text=f"Вы приняли тестирование @{callback.from_user.username} ✅")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text=f"Тестирование принято ✅",
+            await bot.send_message(callback_data.sender, text=f"""Тестирование принято
+<a href='https://t.me/+9FMpM6obgMQ3MmYy'>Приглашение в группу стажеров</a>""",
                                    reply_markup=keyboards.main_actions(callback.from_user.id,
-                                                                       callback.from_user.username))
+                                                                       callback.from_user.username),
+                                   parse_mode=ParseMode.HTML)
+            await bot.send_message(callback_data.sender, text="""Приветствую в группе Stratton Python Interns
+Для начала представьтесь, написав Имя, Город и немного про свои скиллы и увлечения!
+С вами в группе наставники:
+Адил @crepecafe - PM команды разработки
+Михаил @M1khal1 - разработчик команды Python
+
+Группа является комьюнити единомышленников, где каждый может общаться по теме разработки, просить у участников помощи в  тестировании ботов, советов.
+
+⚠️Правила:
+❗️1. Пишем на Aiogram 3;
+❗️2. После выполнения задания протестировать задание на корректность! И только после всех проверок прислать ссылку на ЗАПУЩЕННОГО бота для проверки функционала;
+❗️3. Соблюдать дедлайны и отвечать на сообщения наставников. После получения задачи пишите в ответ "принято" ✅!
+❗️4. Флуд запрещен! ⛔️
+Вот так сообщения не писать! ❌👇🏿
+или через
+консоль разработчика
+Win + R
+туда cmd
+и путь к своему файлу
+к мейну
+или к питону
+напрямую
+❗️5. Пользоваться этим <a href="https://docs.google.com/document/d/1JDWAFRgLbI76j60YnF0-PhxmZPe_WBdQfq6xaBlC_kg/edit">руководством</a> при написании ботов!
+6. Прочитать все закрепленные сообщения
+
+Задание назначается после вступления в группу! Напишите, легче или сложнее назначить первую задачу!
+
+После выполнения и демонстрации заданий на локалке cтажеру на усмотрение наставников может быть выдан сервер для размещения ботов! Мы сами предложим!
+
+Всем успешной стажировки и скорейшего перехода в продуктовую (боевую) команду!""", parse_mode=ParseMode.HTML)
             await send_testing_message_callback(callback, to_complete=True)
     await callback.answer()
 
@@ -82,16 +114,16 @@ async def times(callback: types.CallbackQuery, callback_data: TimeCallbackFactor
                                                          '%Y-%m-%d %H:%M')
                 else:
                     return callback.message.answer(text="Произошла ошибка")
-                # if config.DEV_MODE:
-                #     date_now = datetime.datetime.now(tz=pytz.FixedOffset(300))
-                #     date_to = datetime.datetime(year=date_now.year, month=date_now.month, day=date_now.day,
-                #                                 hour=date_now.hour, minute=date_now.minute)
-                #     date_to += datetime.timedelta(minutes=1)
-                #     timed = datetime.time(hour=date_to.hour, minute=date_to.minute).strftime("%H:%M")
-                #     cursor.execute(f"update users_data set date=%s, time=%s"
-                #                    f" where user_id={callback.from_user.id}",
-                #                    (date_to, f"{timed}"))
-                #     con.commit()
+                if config.DEV_MODE:
+                    date_now = datetime.datetime.now(tz=pytz.FixedOffset(300))
+                    date_to = datetime.datetime(year=date_now.year, month=date_now.month, day=date_now.day,
+                                                hour=date_now.hour, minute=date_now.minute)
+                    date_to += datetime.timedelta(minutes=1)
+                    timed = datetime.time(hour=date_to.hour, minute=date_to.minute).strftime("%H:%M")
+                    cursor.execute(f"update users_data set date=%s, time=%s"
+                                   f" where user_id={callback.from_user.id}",
+                                   (date_to, f"{timed}"))
+                    con.commit()
                 scheduler = AsyncIOScheduler(timezone="Asia/Almaty")
                 started_at = datetime.datetime.strptime(
                     datetime.datetime.now(tz=pytz.FixedOffset(300)).strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d "

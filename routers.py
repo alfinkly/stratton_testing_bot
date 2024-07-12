@@ -21,6 +21,7 @@ coloredlogs.install()
 
 @router.message(Command("start"))
 async def start(message: Message):
+    
     await message.answer(
         f"Приветствую @{message.from_user.username}🙂🤝🏼 "
         f"\nЯ бот компании Stratton.kz"
