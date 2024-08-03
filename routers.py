@@ -13,6 +13,10 @@ import methods
 from config import con
 from methods import exist_datetime
 
+from aiogram.fsm.context import FSMContext
+from aiogram.types import InputMediaPhoto
+from NDAService.handlers import GetCheckKeyboard
+
 router = Router()
 # con = sqlite3.connect("database.db", timeout=30)
 # cursor = con.cursor(buffered=True)
@@ -61,7 +65,7 @@ async def info(message: Message):
 async def info(message: Message):
     await message.answer(
         f"Для связи с нами пишите ✍️"
-        f"\n@deaspecty",
+        f"\n@alfinkly",
         reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                             username=message.from_user.username,
                                             add_remove_exam=exist_datetime(message.from_user.id))
@@ -83,7 +87,7 @@ async def info(message: Message):
             f"Тестирование было пройдено."
             f"\n"
             f"\nПо вопросам пересдачи пишите ✍️"
-            f"\n@deaspecty"
+            f"\n@alfinkly"
         )
 
 
@@ -185,7 +189,27 @@ async def video(message: Message):
 
 
 @router.message(F.text)
-async def format_time(message: Message):
+async def format_time(message: Message, state: FSMContext):
+    data = await state.get_data()
+    if data.get('change'):
+        text = data['text'].split('\n')
+        for i in range(len(text)):
+            asd = text[i].split('-')
+            if asd[0]==data['change']:
+                text[i] = f"{asd[0]}-{message.text}"
+                break
+        text='\n'.join(text)
+        await state.update_data(text=text)
+    
+        media = []
+        photoPaths = [data['fImageId'], data['sImageId']]
+        for path in photoPaths:
+            media.append(InputMediaPhoto(media=path))
+        await message.answer_media_group(media=media)
+        await message.answer(text, reply_markup=GetCheckKeyboard())
+
+    # dokuzunosaiduowari
+
     cursor = con.cursor(buffered=True)
     cursor.execute(f"select test_status from users_data where user_id={message.from_user.id}")
     if methods.get_test_status(message.from_user.id, message.from_user.username) == 1:
