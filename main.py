@@ -56,8 +56,7 @@ async def times(callback: types.CallbackQuery, callback_data: IsCompleteCallback
         elif callback_data.is_complete == 1:
             await callback.message.answer(text=f"Вы приняли тестирование @{callback.from_user.username} ✅")
             await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
-            await bot.send_message(callback_data.sender, text=f"✅ Тестирование принято \n💬Заходи в [группу](https://t.me/+DnWU2YXmlLtiNzdi) и читай закрепленные сообщения", 
-                                   parse_mode="MARKDOWN_V2",
+            await bot.send_message(callback_data.sender, text=f"✅ Тестирование принято", 
                                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
             await send_testing_message_callback(callback, to_complete=True)
             
