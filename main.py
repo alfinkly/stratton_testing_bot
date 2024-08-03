@@ -16,9 +16,14 @@ from config import TOKEN, con
 from factories import IsCompleteCallbackFactory, TimeCallbackFactory
 from methods import send_testing_message_callback
 
+from NDAService.handlers import GenerateKeyboard
+from NDAService.handlers import router as NDARouter
+from aiogram.types import FSInputFile
+from config import PATHS
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-dp.include_routers(routers.router, callback_router.router)
+dp.include_routers(routers.router, callback_router.router, NDARouter)
 coloredlogs.install()
 
 
@@ -87,6 +92,13 @@ Win + R
 
 Всем успешной стажировки и скорейшего перехода в продуктовую (боевую) команду!""", parse_mode=ParseMode.HTML)
             await send_testing_message_callback(callback, to_complete=True)
+            
+            # dokuzunosaidustaato
+
+            await bot.send_document(callback_data.sender, FSInputFile(f'{PATHS["img"]}nda.docx'))
+            await bot.send_message(callback_data.sender, text='Ознакомьтесь с документом 🙂')
+            await bot.send_message(callback_data.sender, text='Теперь вам надо отправить свои данные для подписания NDA, вам нужно будет сфотографировать свое удостоверение личности 🙂 \nЕсли у вас не получается отсканировать данные, пропустите этап нажав на кнопку "пропустить" 🙂',
+                                   reply_markup=GenerateKeyboard({'Приступить': 'img'}))
     await callback.answer()
 
 
