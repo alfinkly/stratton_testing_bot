@@ -1,14 +1,11 @@
 from aiogram import Router, types, F
 from aiogram.types import ContentType
-from aiogram.fsm.context import FSMContext
 from aiogram.filters.command import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from NDAService.callbacks import Callback, ChangeCallback
 from aiogram.filters.callback_data import CallbackQuery
 from aiogram.types import FSInputFile
-from aiogram.types import InputMediaPhoto
-from NDAService.module import *
-from config import PATHS
+from services.nda.module import *
+from tg_config import PATHS
 
 router = Router()
 
@@ -36,10 +33,10 @@ def GetCheckKeyboard():
 
 @router.message(Command("start"))
 async def Start(msg: types.Message):
-    await msg.answer(text='Начните отправку фотографии вашего удостверение личности', reply_markup=GenerateKeyboard({'Начать': 'img'}))
+    await msg.answer(text='Начните отправку фотографии вашего удостверение личности', reply_markup=GenerateKeyboard({'Начать': 'data'}))
 
 
-@router.callback_query(Callback.filter(F.action=='img'))
+@router.callback_query(Callback.filter(F.action=='data'))
 async def IMGHandler(cb: CallbackQuery, state: FSMContext):
     await state.update_data(face=True)
     await cb.message.edit_text(text='Отправьте фотографию лицевой стороны удостверения личности')
@@ -49,7 +46,7 @@ async def IMGHandler(cb: CallbackQuery, state: FSMContext):
 async def process_photo(msg: types.Message, state: FSMContext):
     data = await state.get_data()
     if data.get('face') or data.get('back'):
-        file_name = f"{PATHS['img']}{'faceside' if data.get('face') else 'backside'}{msg.from_user.id}.png"
+        file_name = f"{PATHS['data']}{'faceside' if data.get('face') else 'backside'}{msg.from_user.id}.png"
         await msg.bot.download(msg.photo[-1], destination=file_name)
         fields = ReadPhoto(file_name, data.get('face'))
         await ReportToAdmin(msg, fields, msg.photo[-1].file_id)
@@ -105,7 +102,7 @@ async def MainHandler(cb: CallbackQuery, state: FSMContext):
 async def MainHandler(cb: CallbackQuery, state: FSMContext):
     await state.clear()
     await cb.answer()
-    await cb.message.answer(text='Начните отправку фотографии вашего удостверение личности', reply_markup=GenerateKeyboard({'Начать': 'img'}))
+    await cb.message.answer(text='Начните отправку фотографии вашего удостверение личности', reply_markup=GenerateKeyboard({'Начать': 'data'}))
     
 
 @router.callback_query(Callback.filter(F.action=='change'))
@@ -134,7 +131,7 @@ async def OKHandler(cb: CallbackQuery, state: FSMContext):
         asd=i.split('-')
         if len(asd)!=1:
             ndata[asd[0]]=asd[1]
-    file_name = f"{PATHS['img']}docx{data['username']}.docx"
+    file_name = f"{PATHS['data']}docx{data['username']}.docx"
     GetDocx(file_name, ndata)
 
     await state.clear()

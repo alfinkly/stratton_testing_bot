@@ -6,17 +6,17 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 import calendar
 import datetime
 import callback_router
-import config
+import tg_config
 import methods
 import routers
-from config import months, con
+from tg_config import months, con
 from typing import Optional
 from aiogram.filters.callback_data import CallbackData
 from factories import *
 from methods import *
 
 
-# con = sqlite3.connect("database.db", timeout=30)
+# con = sqlite3.connect("database.database", timeout=30)
 # cursor = con.cursor(buffered=True)
 
 
@@ -50,7 +50,7 @@ def get_calendar(year, month, message) -> InlineKeyboardMarkup:
     con.reconnect()
     try:
         caldr = calendar.monthcalendar(year, month)
-        today = datetime.datetime.now(tz=pytz.FixedOffset(300))
+        today = datetime.datetime.now()
         # today = datetime.datetime(day=30, month=3, year=2024)
         open_days = today + datetime.timedelta(days=7)
         header = [InlineKeyboardButton(text="❌", callback_data="nothing"),
@@ -126,7 +126,7 @@ def get_times(callback) -> InlineKeyboardMarkup:
     select = cursor.fetchall()[0][0]
     cursor.close()
     db_day = datetime.datetime.strptime(select, '%Y-%m-%d %H:%M:%S')
-    today = datetime.datetime.now(tz=pytz.FixedOffset(300))
+    today = datetime.datetime.now()
     if today.year == db_day.year and today.month == db_day.month and today.day == db_day.day:
         start_time = (today + datetime.timedelta(hours=1)).hour
     for hour in range(start_time, 24):
@@ -165,10 +165,6 @@ def keyboard_is_exam_complete(from_who, sender) -> InlineKeyboardMarkup:
                                                                                      sender=sender).pack())]
     ])
     return keyboard
-
-
-on_task = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Приступить к тестированию",
-                                                                      callback_data="on_task")]])
 
 
 # Возвращает массив кнопок тэг-текстов
