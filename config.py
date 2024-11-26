@@ -7,7 +7,7 @@ import os
 from functions.misc import load_json
 
 
-DIRECTORY_PROJECT = Path(__file__).parent.parent
+DIRECTORY_PROJECT = Path(__file__).parent
 DIRECTORY_PROJECT_DATA = DIRECTORY_PROJECT / 'data'
 DIRECTORY_FILES = DIRECTORY_PROJECT_DATA / 'files'
 JSON_FILES = DIRECTORY_FILES / "json"
