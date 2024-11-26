@@ -223,12 +223,12 @@ async def process_testing(user_id, message=None, to_complete=False, run_date=Non
     elif test_status == 5 and test_status_db in [2, 3]:
         if type(message) == Message:
             await message.answer(
-                text="Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n@alfinkly",
+                text=f"Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n{config.SUPERVISOR_TG_USERNAME}",
                 reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
             )
         elif type(message) == CallbackQuery:
             await message.message.answer(
-                text="Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n@alfinkly",
+                text=f"Ваше тестирование не выполнено\nПо вопросам пересдачи пишите ✍️\n{config.SUPERVISOR_TG_USERNAME}",
                 reply_markup=keyboards.main_actions(user_id=user_id, username=message.from_user.username)
             )
         await notify_admins(message.bot, message.from_user.username)

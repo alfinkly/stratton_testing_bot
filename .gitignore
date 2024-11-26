@@ -1,8 +1,9 @@
 .idea/
 __pycache__/
-config.py
 test.py
 venv
+.env
+*.json
 *.swp
 *.swo
 *.service

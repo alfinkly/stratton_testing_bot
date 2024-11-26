@@ -65,7 +65,7 @@ async def info(message: Message):
 async def info(message: Message):
     await message.answer(
         f"Для связи с нами пишите ✍️"
-        f"\n@alfinkly",
+        f"\n{config.SUPERVISOR_TG_USERNAME}",
         reply_markup=keyboards.main_actions(user_id=message.from_user.id,
                                             username=message.from_user.username,
                                             add_remove_exam=exist_datetime(message.from_user.id))
@@ -87,7 +87,7 @@ async def info(message: Message):
             f"Тестирование было пройдено."
             f"\n"
             f"\nПо вопросам пересдачи пишите ✍️"
-            f"\n@alfinkly"
+            f"\n{config.SUPERVISOR_TG_USERNAME}"
         )
 
 
