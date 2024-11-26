@@ -3,3 +3,6 @@ __pycache__/
 config.py
 test.py
 venv
+*.swp
+*.swo
+*.service
